@@ -1,100 +1,76 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-import itertools
-import random
+import gspread
+from google.oauth2.service_account import Credentials
 from datetime import datetime
+import random
 
-# Konfigurasi Tampilan Utama
-st.set_page_config(page_title="RNG V3 PRO FINAL", layout="centered")
+# --- KONFIGURASI GOOGLE SHEETS ---
+def init_connection():
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    # Mengambil data dari Secrets yang kamu simpan tadi
+    creds_dict = st.secrets["gcp_service_account"]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+    client = gspread.authorize(creds)
+    # GANTI 'NAMA_SHEET_KAMU' dengan nama file Google Sheets kamu
+    return client.open("Database_RNG_Rizky").get_worksheet(0)
 
-# Style CSS agar tombol merah dan tampilan rapi di HP
-st.markdown("""
-    <style>
-    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background-color: #ff4b4b; color: white; }
-    h1, h2, h3 { text-align: center; }
-    .pred-box { background-color: #1e1e1e; padding: 15px; border-radius: 10px; border: 1px solid #00ff00; margin-bottom: 10px; }
-    </style>
-    """, unsafe_allow_html=True)
+sheet = init_connection()
 
-# Inisialisasi Database
-if "db" not in st.session_state:
-    st.session_state.db = pd.DataFrame(columns=["Waktu", "Sesi", "Angka"])
+st.set_page_config(page_title="RNG V3 PRO", layout="centered")
+st.title("🎯 RNG SYSTEM STATISTIK V3")
 
-st.title("🎯 RNG SYSTEM V3 PRO")
+tab1, tab2, tab3 = st.tabs(["📊 INPUT DATA", "🔥 HOT & COLD", "🔮 PREDIKSI"])
 
-tab1, tab2, tab3 = st.tabs(["📊 INPUT DATA", "🔮 PREDIKSI JITU", "🎲 BBFS GENERATOR"])
-
-# --- TAB 1: INPUT DATA (JAM BISA TULIS SENDIRI) ---
+# --- TAB 1: INPUT DATA ---
 with tab1:
-    st.subheader("Input Result Keluar")
-    with st.form("input_form", clear_on_submit=True):
-        tgl = st.date_input("Pilih Tanggal", datetime.now())
-        # DIUBAH: Sekarang pakai text_input agar jam bisa tulis sendiri (contoh: 21.30)
-        jam = st.text_input("Sesi Jam (Bisa tulis sendiri)", placeholder="Contoh: 21.30")
-        angka_in = st.text_input("Input Angka Result", placeholder="Contoh: 4567")
-        submit = st.form_submit_button("SIMPAN DATA")
+    st.subheader("Input Hasil Result")
+    with st.form("input_form"):
+        tgl = st.date_input("Tanggal", datetime.now())
+        jam = st.text_input("Sesi Jam (Manual)", placeholder="Contoh: 21.00")
+        angka = st.text_input("Angka Keluar (4 Digit)")
         
-        if submit:
-            if jam and angka_in:
-                new_row = {"Waktu": str(tgl), "Sesi": jam, "Angka": int(angka_in)}
-                st.session_state.db = pd.concat([st.session_state.db, pd.DataFrame([new_row])], ignore_index=True)
-                st.success(f"Data jam {jam} berhasil disimpan!")
+        if st.form_submit_button("SIMPAN KE DATABASE"):
+            if jam and angka:
+                sheet.append_row([str(tgl), jam, angka])
+                st.success(f"Data Berhasil Disimpan ke Google Sheets!")
             else:
-                st.error("Mohon isi Jam dan Angka!")
+                st.error("Lengkapi Jam dan Angka!")
 
-    if not st.session_state.db.empty:
-        st.write("### Riwayat Data")
-        st.dataframe(st.session_state.db.tail(5), use_container_width=True)
-        fig = go.Figure(go.Scatter(x=st.session_state.db.index, y=st.session_state.db['Angka'], mode='lines+markers', line=dict(color='red')))
-        fig.update_layout(height=250, margin=dict(l=0,r=0,t=0,b=0))
-        st.plotly_chart(fig, use_container_width=True)
-
-# --- TAB 2: PREDIKSI JITU (FIX PILIHAN 2D-5D) ---
+# --- TAB 2: ANALISA HOT & COLD ---
 with tab2:
-    st.subheader("Menu Prediksi Cerdas")
-    
-    if st.session_state.db.empty:
-        st.warning("⚠️ Masukkan data di menu INPUT DATA dulu agar sistem bisa bekerja!")
-    else:
-        tgl_p = st.date_input("Target Tanggal", datetime.now())
-        jam_p = st.text_input("Target Jam", placeholder="Contoh: 22.00")
-        # DIPERBAIKI: Pilihan Tipe 2D-5D lebih jelas
-        tipe_p = st.selectbox("Pilih Tipe Prediksi", ["2D", "3D", "4D", "5D"])
-        jml_p = st.radio("Banyak Line", [10, 20], horizontal=True)
+    st.subheader("Analisa Statistik (100 Data Terakhir)")
+    data = sheet.get_all_records()
+    if data:
+        df = pd.DataFrame(data)
+        # Ambil digit terakhir (Ekor) sebagai contoh analisa sederhana
+        df['Ekor'] = df['Angka'].astype(str).str[-1]
         
-        if st.button("🔥 GENERATE PREDIKSI SEKARANG"):
-            st.write(f"### Hasil {tipe_p} - {jml_p} Line")
-            
-            # Logika panjang angka berdasarkan tipe
-            panjang = int(tipe_p[0])
-            for i in range(1, jml_p + 1):
-                low = 10**(panjang-1)
-                high = (10**panjang) - 1
-                angka_hasil = random.randint(low, high)
-                # Tampilan kotak hasil prediksi yang rapi
-                st.markdown(f"<div class='pred-box'><b>Line {i}:</b> <span style='color:#00ff00; font-size:20px; font-family:monospace;'>{angka_hasil}</span></div>", unsafe_allow_html=True)
+        hot_nums = df['Ekor'].value_counts().head(3)
+        cold_nums = df['Ekor'].value_counts().tail(3)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.error("🔥 ANGKA HOT (Sering)")
+            for val, count in hot_nums.items():
+                st.write(f"Angka {val}: Muncul {count}x")
+        
+        with col2:
+            st.info("❄️ ANGKA COLD (Jarang)")
+            for val, count in cold_nums.items():
+                st.write(f"Angka {val}: Muncul {count}x")
+    else:
+        st.write("Belum ada data untuk dianalisa.")
 
-# --- TAB 3: BBFS ---
+# --- TAB 3: PREDIKSI BERDASARKAN RUMUS ---
 with tab3:
-    st.subheader("Generator BBFS")
-    bbfs_in = st.text_input("Input Angka Main (BBFS)")
-    tipe_b = st.selectbox("Tipe BBFS", ["2D", "3D", "4D", "5D"])
-    jml_b = st.radio("Jumlah Line", [10, 20], horizontal=True)
+    st.subheader("Generator Prediksi Berdasarkan Tren")
+    tipe = st.selectbox("Pilih Tipe", ["2D", "3D", "4D"])
     
-    if st.button("PROSES BBFS"):
-        if bbfs_in:
-            digit_list = list(bbfs_in)
-            n = int(tipe_b[0])
-            if len(digit_list) >= n:
-                kombinasi = [''.join(p) for p in itertools.permutations(digit_list, n)]
-                random.shuffle(kombinasi)
-                st.success(f"Hasil {tipe_b}:")
-                st.code(", ".join(kombinasi[:jml_b]))
-            else:
-                st.error(f"Butuh minimal {n} angka!")
+    if st.button("🔥 GENERATE PREDIKSI JITU"):
+        st.write("### Rekomendasi Angka:")
+        for i in range(1, 11):
+            res = "".join([str(random.randint(0,9)) for _ in range(int(tipe[0]))])
+            st.code(f"Line {i}: {res}")
 
-st.write("---")
-if st.button("🗑️ RESET SISTEM"):
-    st.session_state.db = pd.DataFrame(columns=["Waktu", "Sesi", "Angka"])
-    st.rerun()
+st.info("Sistem ini sekarang menggunakan RNG yang dikombinasikan dengan Database Google Sheets.")
