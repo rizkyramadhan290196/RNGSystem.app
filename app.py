@@ -27,7 +27,7 @@ st.markdown("""
         border: 1px solid #FFD700; margin: 10px 0;
     }
     .rekomendasi-angka {
-        font-size: 24px; color: #FFD700; font-weight: bold; text-align: center;
+        font-size: 22px; color: #FFD700; font-weight: bold; text-align: center;
         background: #222; padding: 10px; border-radius: 10px; border: 1px solid #FFD700;
         margin: 10px 0;
     }
@@ -79,7 +79,7 @@ try:
                 if st.form_submit_button("SAVE DATA"):
                     if jam and val.isdigit():
                         sheet.append_row([str(tgl), jam, val])
-                        st.success("Terkunci!"); st.rerun()
+                        st.success("Tersimpan!"); st.rerun()
             if st.button("🗑️ HAPUS TERAKHIR"):
                 sheet.delete_rows(len(all_data)); st.rerun()
         with c2:
@@ -91,32 +91,34 @@ try:
             if ekor_list:
                 counts_ekor = pd.Series(ekor_list).value_counts()
                 hot_e = str(counts_ekor.idxmax())
-                cold_e = str(counts_ekor.idxmin())
                 
-                # --- AUTO RECOMMENDATION ---
+                # --- AUTO RECOMMENDATION (DITAMBAHKAN 5D) ---
                 st.markdown("### 🧠 HASIL SCAN ALGORITMA")
                 
                 rec_2d = f"{random.randint(0,9)}{hot_e}"
                 rec_3d = f"{random.randint(0,9)}{random.randint(0,9)}{hot_e}"
                 rec_4d = f"{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}{hot_e}"
+                rec_5d = f"{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}{hot_e}"
                 
-                # Sinyal Kekuatan Data
                 sinyal = "🔴 SINYAL LEMAH (Butuh lebih banyak data)" if len(ekor_list) < 10 else "🟢 SINYAL KUAT (Akurasi Tinggi)"
 
                 st.markdown(f"""
                 <div class="analisis-box">
-                <p style="color: #FFD700; margin-bottom: 5px;">✅ <b>REKOMENDASI EKOR KUAT (PILIHAN UTAMA):</b></p>
+                <p style="color: #FFD700; margin-bottom: 5px;">✅ <b>REKOMENDASI EKOR KUAT:</b></p>
                 <div class="rekomendasi-angka">{hot_e}</div>
                 
                 <p style="color: #FFD700; margin-bottom: 5px;">🎯 <b>REKOMENDASI PAKET JADI (TOP):</b></p>
-                <div class="rekomendasi-angka">2D: {rec_2d} | 3D: {rec_3d} | 4D: {rec_4d}</div>
+                <div class="rekomendasi-angka">
+                    2D: {rec_2d} | 3D: {rec_3d}<br>
+                    4D: {rec_4d} | 5D: {rec_5d}
+                </div>
                 
                 <hr style="border: 0.1px solid #333;">
                 <p class="status-sinyal">{sinyal}</p>
-                <p style="font-size: 13px; color: #aaa;">💡 <i>Tips: Jika sinyal HIJAU, angka rekomendasi memiliki peluang tembus lebih besar berdasarkan sejarah database.</i></p>
                 </div>
                 """, unsafe_allow_html=True)
-
+                
+                # Grafik tetap ada di bawah
                 col_a, col_b = st.columns(2)
                 with col_a:
                     ganjil = len([x for x in ekor_list if x % 2 != 0]); genap = len([x for x in ekor_list if x % 2 == 0])
