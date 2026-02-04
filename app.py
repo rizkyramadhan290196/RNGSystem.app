@@ -8,134 +8,161 @@ import json
 import itertools
 import random
 
-# --- 1. PASSWORD & CONFIG ---
+# --- 1. SETTINGS ---
 PASSWORD_RAHASIA = "rizky77" 
-st.set_page_config(page_title="RIZKY SMART RNG V4.5", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="RIZKY RNG ULTIMATE V5", page_icon="🔥", layout="wide")
 
-# CSS Premium
+# CSS LUXURY GOLD THEME
 st.markdown("""
     <style>
     .stApp { background-color: #050505; color: #ffffff; }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stButton>button {
-        width: 100%; border-radius: 10px;
-        background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
-        color: black; font-weight: bold;
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    .stTabs [data-baseweb="tab"] { 
+        background-color: #1a1a1a; border-radius: 10px 10px 0 0; padding: 10px 20px; color: #FFD700;
     }
+    .stTabs [aria-selected="true"] { background-color: #FFD700; color: black; font-weight: bold; }
+    .stButton>button {
+        width: 100%; border-radius: 12px; height: 45px;
+        background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+        color: black; font-weight: bold; font-size: 16px; border: none;
+        box-shadow: 0px 4px 15px rgba(255, 215, 0, 0.3);
+    }
+    .stTable { background-color: #111; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. FUNGSI LOGIN ---
-def check_password():
-    if "password_correct" not in st.session_state:
-        st.markdown("<h2 style='text-align: center; color: #FFD700;'>🔓 AKSES TERKUNCI</h2>", unsafe_allow_html=True)
-        pwd = st.text_input("Kode Akses:", type="password")
-        if st.button("MASUK"):
+# --- 2. SECURITY ---
+if "password_correct" not in st.session_state:
+    st.markdown("<h3 style='text-align: center; color: #FFD700; margin-top: 50px;'>🔑 RIZKY PRIVATE ACCESS</h3>", unsafe_allow_html=True)
+    col_l, col_r = st.columns([1, 1])
+    with col_l:
+        pwd = st.text_input("Masukkan Kode:", type="password")
+        if st.button("BUKA PANEL"):
             if pwd == PASSWORD_RAHASIA:
                 st.session_state["password_correct"] = True
                 st.rerun()
-            else: st.error("❌ Salah!")
-        return False
-    return True
+            else: st.error("Akses Ditolak!")
+    st.stop()
 
-if check_password():
-    # --- 3. KONEKSI DATABASE ---
-    NAMA_KUNCI = "rng-database-486403-1313e482fc6d.json"
-    
-    @st.cache_resource
-    def init_connection():
-        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        with open(NAMA_KUNCI) as f: info_kunci = json.load(f)
-        creds = Credentials.from_service_account_info(info_kunci, scopes=scope)
-        return gspread.authorize(creds).open("Database_RNG_Rizky").get_worksheet(0)
+# --- 3. DATABASE ---
+NAMA_KUNCI = "rng-database-486403-1313e482fc6d.json"
+@st.cache_resource
+def init_conn():
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    with open(NAMA_KUNCI) as f: info = json.load(f)
+    return gspread.authorize(Credentials.from_service_account_info(info, scopes=scope)).open("Database_RNG_Rizky").get_worksheet(0)
 
-    try:
-        sheet = init_connection()
-        all_data = sheet.get_all_values()
-        
-        if len(all_data) > 1:
-            df = pd.DataFrame(all_data[1:], columns=all_data[0])
-            df['Angka'] = df['Angka'].astype(str).str.strip()
-            data_tersedia = True
-        else:
-            df = pd.DataFrame(columns=["Tanggal", "Jam", "Angka"])
-            data_tersedia = False
+try:
+    sheet = init_conn()
+    all_data = sheet.get_all_values()
+    df = pd.DataFrame(all_data[1:], columns=all_data[0]) if len(all_data) > 1 else pd.DataFrame(columns=["Tanggal", "Jam", "Angka"])
+    df['Angka'] = df['Angka'].astype(str).str.strip()
+    data_exists = not df.empty
 
-        st.title("🎯 RIZKY SMART RNG V4.5")
+    st.title("🎯 RIZKY RNG ULTIMATE V5.0")
 
-        tab1, tab2, tab3, tab4 = st.tabs(["📥 DATABASE", "📈 GRAFIK", "🔮 PREDIKSI", "🎲 BBFS"])
+    tab_db, tab_stat, tab_pred, tab_bbfs = st.tabs(["📥 DATA CENTER", "📊 ANALISIS SAKTI", "🔮 PREDIKSI RNG", "🎲 BBFS"])
 
-        # --- TAB 1: DATABASE ---
-        with tab1:
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                with st.form("in_v4", clear_on_submit=True):
-                    tgl = st.date_input("Tanggal", datetime.now())
-                    jam = st.text_input("Jam")
-                    angka_in = st.text_input("Hasil Angka")
-                    if st.form_submit_button("SIMPAN DATA"):
-                        if jam and angka_in:
-                            sheet.append_row([str(tgl), jam, str(angka_in)])
-                            st.success("Tersimpan!")
-                            st.rerun()
-                if st.button("🗑️ HAPUS TERAKHIR"):
-                    sheet.delete_rows(len(all_data))
-                    st.rerun()
-            with c2:
-                if data_tersedia: st.table(df.tail(8))
+    with tab_db:
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            with st.form("input_form"):
+                tgl = st.date_input("Tanggal", datetime.now())
+                jam = st.text_input("Sesi/Jam (Contoh: SGP 17.00)")
+                val = st.text_input("Hasil Angka")
+                if st.form_submit_button("SIMPAN DATA"):
+                    if jam and val.isdigit():
+                        sheet.append_row([str(tgl), jam, val])
+                        st.success("Data Berhasil Dikunci!"); st.rerun()
+            if st.button("🗑️ HAPUS BARIS TERAKHIR"):
+                sheet.delete_rows(len(all_data)); st.rerun()
+        with c2:
+            st.markdown("### 📜 10 Riwayat Terakhir")
+            if data_exists: st.table(df.tail(10))
 
-        # --- TAB 2: GRAFIK (PERBAIKAN WARNA) ---
-        with tab2:
-            st.subheader("Statistik Frekuensi Angka")
-            if data_tersedia:
-                ekor_list = [a[-1] for a in df['Angka'] if a != ""]
-                if ekor_list:
-                    counts = pd.Series(ekor_list).value_counts().reindex([str(i) for i in range(10)], fill_value=0)
-                    # Mengganti Goldenrod dengan 'thermal' yang pasti didukung
-                    fig = px.bar(x=counts.index, y=counts.values, 
-                                 labels={'x':'Angka Ekor', 'y':'Kali Keluar'},
-                                 color=counts.values, color_continuous_scale='thermal')
-                    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
-                    st.plotly_chart(fig, use_container_width=True)
-                else: st.info("Data angka belum lengkap.")
-            else: st.warning("Database kosong!")
-
-        # --- TAB 3: PREDIKSI (FITUR TANGGAL) ---
-        with tab3:
-            st.subheader("🔮 Prediksi Harian")
-            col_a, col_b = st.columns(2)
-            tgl_pred = col_a.date_input("Untuk Tanggal:", datetime.now() + timedelta(days=1))
-            mode = col_b.selectbox("Mode:", ["2D", "3D", "4D", "5D"])
-            jml_m = st.number_input("Jumlah Urutan:", min_value=1, value=25)
+    with tab_stat:
+        if data_exists:
+            # Mengambil ekor
+            ekor_list = [int(a[-1]) for a in df['Angka'] if a and a[-1].isdigit()]
             
-            if st.button("RACIK UNTUK TANGGAL INI"):
-                # Seed berdasarkan tanggal agar hasil konsisten tapi unik tiap hari
-                random.seed(int(tgl_pred.strftime("%Y%m%d")))
-                hot_ekor = df['Angka'].str[-1].mode()[0] if data_tersedia else "7"
+            if ekor_list:
+                col_a, col_b = st.columns(2)
                 
-                hasil = []
-                for _ in range(int(jml_m)):
+                ganjil = len([x for x in ekor_list if x % 2 != 0])
+                genap = len([x for x in ekor_list if x % 2 == 0])
+                kecil = len([x for x in ekor_list if x <= 4])
+                besar = len([x for x in ekor_list if x >= 5])
+
+                with col_a:
+                    fig_gg = px.pie(values=[ganjil, genap], names=['Ganjil', 'Genap'], 
+                                   title="⚖️ TREN GENAP/GANJIL",
+                                   color_discrete_sequence=['#FFD700', '#222222']) # Gold & Black
+                    fig_gg.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_gg, use_container_width=True)
+                
+                with col_b:
+                    fig_bk = px.pie(values=[kecil, besar], names=['Kecil (0-4)', 'Besar (5-9)'], 
+                                   title="📏 TREN BESAR/KECIL",
+                                   color_discrete_sequence=['#B8860B', '#444444']) # Bronze & Dark Grey
+                    fig_bk.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_bk, use_container_width=True)
+
+                # Frekuensi Bar Chart
+                counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
+                fig_bar = px.bar(x=counts.index, y=counts.values, 
+                                 title="📊 FREKUENSI DIGIT TERAKHIR",
+                                 labels={'x':'Digit', 'y':'Jumlah Keluar'},
+                                 color=counts.values, color_continuous_scale='YlOrBr')
+                fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+                st.plotly_chart(fig_bar, use_container_width=True)
+            else: st.info("Tambahkan data angka untuk melihat statistik.")
+        else: st.warning("Database masih kosong!")
+
+    with tab_pred:
+        st.subheader("🔮 Hybrid RNG Prediction System")
+        if data_exists:
+            ca, cb = st.columns(2)
+            tgl_p = ca.date_input("Target Hari/Tanggal", datetime.now() + timedelta(days=1))
+            mode = cb.selectbox("Pilih Target:", ["2D", "3D", "4D", "5D"])
+            jml = st.number_input("Jumlah Baris:", 1, 120, 25)
+
+            if st.button("🔥 RACIK ANGKA SAKTI"):
+                # Seed unik berdasarkan tanggal
+                random.seed(int(tgl_p.strftime("%Y%m%d")))
+                
+                # Identifikasi Hot & Cold
+                ekor_list = [int(a[-1]) for a in df['Angka'] if a and a[-1].isdigit()]
+                counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
+                hot = str(counts.idxmax())
+                cold = str(counts.idxmin())
+                
+                results = []
+                for _ in range(jml):
+                    # Campuran 70% Hot, 30% Cold
+                    kunci = hot if random.random() < 0.7 else cold
                     prefix = "".join([str(random.randint(0,9)) for _ in range(int(mode[0])-1)])
-                    hasil.append(prefix + hot_ekor)
+                    results.append(prefix + kunci)
                 
-                st.markdown(f"### 📅 Prediksi {mode} - {tgl_pred.strftime('%d %B %Y')}")
-                st.code(", ".join(list(set(hasil))) )
-                st.info(f"Analisis berdasarkan Ekor Terkuat: {hot_ekor}")
+                st.markdown(f"### 📅 Prediksi {mode} Untuk {tgl_p.strftime('%d-%m-%Y')}")
+                st.code(", ".join(list(set(results))))
+                st.success(f"Analisis: Kunci Utama ({hot}), Kunci Cadangan ({cold})")
+        else: st.warning("Sistem membutuhkan data di Data Center untuk merumus!")
 
-        # --- TAB 4: BBFS ---
-        with tab4:
-            b_in = st.text_input("Angka Main")
-            b_jml = st.number_input("Total Urutan:", min_value=1, value=25)
-            if st.button("PROSES BBFS"):
-                if b_in:
-                    combos = [''.join(p) for p in itertools.permutations(b_in, len(b_in))]
-                    res = random.sample(combos, min(len(combos), b_jml))
-                    st.code(", ".join(res))
+    with tab_bbfs:
+        st.subheader("🎲 BBFS Generator")
+        b_in = st.text_input("Input Angka Main (Contoh: 12345)")
+        b_jml = st.number_input("Tampilkan Berapa Baris:", 1, 100, 25)
+        if st.button("GENERATE BBFS"):
+            if b_in:
+                combos = [''.join(p) for p in itertools.permutations(b_in, len(b_in))]
+                final_bbfs = random.sample(combos, min(len(combos), b_jml))
+                st.code(", ".join(final_bbfs))
 
-        if st.sidebar.button("Logout"):
-            del st.session_state["password_correct"]
-            st.rerun()
+    # Tombol Logout di Sidebar
+    st.sidebar.title("MENU")
+    if st.sidebar.button("🔒 Keluar & Kunci"):
+        del st.session_state["password_correct"]
+        st.rerun()
 
-    except Exception as e:
-        st.error(f"Sinkronisasi: {e}")
+except Exception as e:
+    st.error(f"⚠️ Terjadi Sinkronisasi: {e}")
