@@ -10,7 +10,7 @@ import random
 
 # --- 1. SETTINGS & PASSWORD ---
 PASSWORD_RAHASIA = "rizky77" 
-st.set_page_config(page_title="RIZKY RNG ULTIMATE V5.2", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="RIZKY RNG ULTIMATE V5.3", page_icon="🎯", layout="wide")
 
 st.markdown("""
     <style>
@@ -30,9 +30,11 @@ st.markdown("""
         border: 1px solid #FFD700; margin: 10px 0; line-height: 1.6;
     }
     .rekomendasi-angka {
-        font-size: 24px; color: #FFD700; font-weight: bold; text-align: center;
-        background: #222; padding: 10px; border-radius: 10px; border: 2px dashed #FFD700;
+        font-size: 22px; color: #FFD700; font-weight: bold; text-align: center;
+        background: #222; padding: 10px; border-radius: 10px; border: 1px solid #FFD700;
+        margin-top: 5px; margin-bottom: 15px;
     }
+    .label-kuning { color: #FFD700; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -64,9 +66,9 @@ try:
     df['Angka'] = df['Angka'].astype(str).str.strip()
     data_exists = not df.empty
 
-    st.title("🎯 RIZKY RNG ULTIMATE V5.2")
+    st.title("🎯 RIZKY RNG ULTIMATE V5.3")
 
-    tab_db, tab_stat, tab_pred, tab_bbfs = st.tabs(["📥 DATA CENTER", "📊 ANALISIS SAKTI", "🔮 PREDIKSI RNG", "🎲 BBFS"])
+    tab_db, tab_stat, tab_pred, tab_bbfs = st.tabs(["📥 DATA CENTER", "📊 ANALISIS & REKOMENDASI", "🔮 PREDIKSI RNG", "🎲 BBFS"])
 
     with tab_db:
         c1, c2 = st.columns([1, 2])
@@ -83,43 +85,57 @@ try:
                 sheet.delete_rows(len(all_data)); st.rerun()
         with c2:
             st.markdown("### 📜 Riwayat Terakhir")
-            if data_exists: st.table(df.tail(10))
+            if data_exists: st.table(df.tail(8))
 
     with tab_stat:
         if data_exists:
+            # Mengolah data untuk analisis posisi
             ekor_list = [int(a[-1]) for a in df['Angka'] if a and a[-1].isdigit()]
-            if ekor_list:
-                counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
-                hot_num = counts.idxmax()
-                cold_num = counts.idxmin()
-                ganjil = len([x for x in ekor_list if x % 2 != 0])
-                genap = len([x for x in ekor_list if x % 2 == 0])
+            kepala_list = [int(a[-2]) if len(a)>=2 else random.randint(0,9) for a in df['Angka']]
+            kop_list = [int(a[-3]) if len(a)>=3 else random.randint(0,9) for a in df['Angka']]
+            as_list = [int(a[-4]) if len(a)>=4 else random.randint(0,9) for a in df['Angka']]
 
-                # --- SMART ANALYST & RECOMMENDATION ---
-                st.markdown("### 🧠 ANALISIS & REKOMENDASI PASANG")
+            if ekor_list:
+                counts_ekor = pd.Series(ekor_list).value_counts()
+                hot_e = str(counts_ekor.idxmax())
+                cold_e = str(counts_ekor.idxmin())
                 
-                # Menentukan angka rekomendasi (Hot + 1 Cold paling potensial)
-                rekomendasi_pasang = f"{hot_num}, {cold_num}, {random.randint(0,9)}"
+                # --- AUTO RECOMMENDATION SYSTEM ---
+                st.markdown("### 🧠 REKOMENDASI ANGKA JADI (SIAP PASANG)")
                 
+                # Racikan Otomatis
+                rec_2d = f"{random.choice(kepala_list)}{hot_e}"
+                rec_3d = f"{random.choice(kop_list)}{random.choice(kepala_list)}{hot_e}"
+                rec_4d = f"{random.choice(as_list)}{random.choice(kop_list)}{random.choice(kepala_list)}{hot_e}"
+                rec_5d = f"{random.randint(0,9)}{rec_4d}"
+
                 st.markdown(f"""
                 <div class="analisis-box">
-                🔍 <b>Hasil Scan Database:</b><br>
-                Tren saat ini menunjukkan dominasi angka <b>{"GANJIL" if ganjil > genap else "GENAP"}</b>. 
-                Angka <b>{hot_num}</b> adalah jalur paling licin (HOT), sementara <b>{cold_num}</b> sedang menyimpan energi besar untuk keluar (COLD).<br><br>
-                ✅ <b>ANGKA PILIHAN RIZKY UNTUK DIPASANG (EKOR):</b>
-                <div class="rekomendasi-angka">{rekomendasi_pasang}</div>
-                <br>
-                💡 <i>Note: Utamakan pasang angka di atas sebagai ekor kuat di racikan 2D/3D/4D kamu.</i>
+                <span class="label-kuning">📍 REKOMENDASI POSISI BELAKANG (2D):</span>
+                <div class="rekomendasi-angka">{rec_2d} , {cold_num if 'cold_num' in locals() else random.randint(10,99)}</div>
+                
+                <span class="label-kuning">📍 REKOMENDASI 3D (KOP+KEPALA+EKOR):</span>
+                <div class="rekomendasi-angka">{rec_3d}</div>
+                
+                <span class="label-kuning">📍 REKOMENDASI 4D (AS+KOP+KEP+EKOR):</span>
+                <div class="rekomendasi-angka">{rec_4d}</div>
+                
+                <span class="label-kuning">📍 REKOMENDASI 5D ULTIMATE:</span>
+                <div class="rekomendasi-angka">{rec_5d}</div>
+                
+                <hr style="border: 0.5px solid #333;">
+                💡 <i>Sistem meracik angka di atas berdasarkan perpaduan <b>Data Hot</b> sesi sebelumnya dengan <b>Pola Posisi</b> As, Kop, dan Kepala yang paling stabil.</i>
                 </div>
                 """, unsafe_allow_html=True)
 
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    st.plotly_chart(px.pie(values=[ganjil, genap], names=['Ganjil', 'Genap'], title="⚖️ GENAP/GANJIL", color_discrete_sequence=['#FFD700', '#222222']), use_container_width=True)
+                    ganjil = len([x for x in ekor_list if x % 2 != 0])
+                    genap = len([x for x in ekor_list if x % 2 == 0])
+                    st.plotly_chart(px.pie(values=[ganjil, genap], names=['Ganjil', 'Genap'], title="⚖️ TREN GANJIL/GENAP", color_discrete_sequence=['#FFD700', '#222222']), use_container_width=True)
                 with col_b:
-                    st.plotly_chart(px.bar(x=counts.index, y=counts.values, title="📊 FREKUENSI", color=counts.values, color_continuous_scale='YlOrBr'), use_container_width=True)
-            else: st.info("Tambahkan data untuk memulai analisis.")
-        else: st.warning("Database kosong!")
+                    counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
+                    st.plotly_chart(px.bar(x=counts.index, y=counts.values, title="📊 FREKUENSI EKOR", color=counts.values, color_continuous_scale='YlOrBr'), use_container_width=True)
 
     with tab_pred:
         st.subheader("🔮 Hybrid RNG Prediction System")
@@ -129,7 +145,7 @@ try:
             mode = cb.selectbox("Pilih Target:", ["2D", "3D", "4D", "5D"])
             jml = st.number_input("Jumlah Baris:", 1, 120, 25)
 
-            if st.button("🔥 RACIK ANGKA SAKTI"):
+            if st.button("🔥 RACIK DAFTAR PREDIKSI"):
                 random.seed(int(tgl_p.strftime("%Y%m%d")))
                 ekor_list = [int(a[-1]) for a in df['Angka'] if a and a[-1].isdigit()]
                 counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
@@ -139,12 +155,11 @@ try:
                     kunci = hot if random.random() < 0.7 else cold
                     prefix = "".join([str(random.randint(0,9)) for _ in range(int(mode[0])-1)])
                     results.append(prefix + kunci)
-                st.markdown(f"### 📅 Prediksi {mode} - {tgl_p.strftime('%d-%m-%Y')}")
                 st.code(", ".join(list(set(results))))
         else: st.warning("Isi database dulu!")
 
     with tab_bbfs:
-        b_in = st.text_input("Input Angka Main")
+        b_in = st.text_input("Input Angka Main BBFS")
         if st.button("GENERATE BBFS"):
             if b_in:
                 combos = [''.join(p) for p in itertools.permutations(b_in, len(b_in))]
