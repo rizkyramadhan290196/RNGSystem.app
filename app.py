@@ -12,7 +12,7 @@ import random
 PASSWORD_RAHASIA = "rizky77" 
 st.set_page_config(page_title="RIZKY SMART RNG V4.5", page_icon="🎯", layout="wide")
 
-# CSS Premium Midnight
+# CSS Premium
 st.markdown("""
     <style>
     .stApp { background-color: #050505; color: #ffffff; }
@@ -85,20 +85,20 @@ if check_password():
             with c2:
                 if data_tersedia: st.table(df.tail(8))
 
-        # --- TAB 2: GRAFIK (PERBAIKAN!) ---
+        # --- TAB 2: GRAFIK (PERBAIKAN WARNA) ---
         with tab2:
             st.subheader("Statistik Frekuensi Angka")
             if data_tersedia:
-                # Mengambil digit terakhir (Ekor) dari SEMUA data
                 ekor_list = [a[-1] for a in df['Angka'] if a != ""]
                 if ekor_list:
                     counts = pd.Series(ekor_list).value_counts().reindex([str(i) for i in range(10)], fill_value=0)
+                    # Mengganti Goldenrod dengan 'thermal' yang pasti didukung
                     fig = px.bar(x=counts.index, y=counts.values, 
                                  labels={'x':'Angka Ekor', 'y':'Kali Keluar'},
-                                 color=counts.values, color_continuous_scale='Goldenrod')
+                                 color=counts.values, color_continuous_scale='thermal')
                     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
                     st.plotly_chart(fig, use_container_width=True)
-                else: st.info("Data angka belum lengkap untuk grafik.")
+                else: st.info("Data angka belum lengkap.")
             else: st.warning("Database kosong!")
 
         # --- TAB 3: PREDIKSI (FITUR TANGGAL) ---
@@ -110,9 +110,9 @@ if check_password():
             jml_m = st.number_input("Jumlah Urutan:", min_value=1, value=25)
             
             if st.button("RACIK UNTUK TANGGAL INI"):
-                # Logika: Gunakan Seed berdasarkan Tanggal agar hasil unik tiap hari
+                # Seed berdasarkan tanggal agar hasil konsisten tapi unik tiap hari
                 random.seed(int(tgl_pred.strftime("%Y%m%d")))
-                hot_ekor = df['Angka'].str[-1].mode()[0] if data_tersedia else str(random.randint(0,9))
+                hot_ekor = df['Angka'].str[-1].mode()[0] if data_tersedia else "7"
                 
                 hasil = []
                 for _ in range(int(jml_m)):
@@ -121,7 +121,7 @@ if check_password():
                 
                 st.markdown(f"### 📅 Prediksi {mode} - {tgl_pred.strftime('%d %B %Y')}")
                 st.code(", ".join(list(set(hasil))) )
-                st.info(f"Racikan berdasarkan Ekor Terkuat: {hot_ekor}")
+                st.info(f"Analisis berdasarkan Ekor Terkuat: {hot_ekor}")
 
         # --- TAB 4: BBFS ---
         with tab4:
