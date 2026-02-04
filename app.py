@@ -8,7 +8,47 @@ import json
 import itertools
 import random
 
-# --- 1. KONEKSI DATABASE ---
+# --- 1. KONFIGURASI TAMPILAN APP ---
+st.set_page_config(
+    page_title="RIZKY RNG PRO V4", 
+    page_icon="🎯", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# CSS CUSTOM: Tema Midnight Gold & Sembunyikan Menu Browser
+st.markdown("""
+    <style>
+    /* Warna Dasar */
+    .stApp { background-color: #050505; color: #ffffff; }
+    
+    /* Menghilangkan Menu Streamlit agar mirip App Asli */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Gaya Tombol */
+    .stButton>button {
+        width: 100%;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+        color: black;
+        font-weight: bold;
+        border: none;
+    }
+    
+    /* Gaya Input */
+    div[data-baseweb="input"] {
+        background-color: #1a1a1a !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Gaya Card/Metric */
+    [data-testid="stMetricValue"] { color: #FFD700 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 2. KONEKSI DATABASE ---
 NAMA_KUNCI = "rng-database-486403-1313e482fc6d.json"
 
 def init_connection():
@@ -18,86 +58,100 @@ def init_connection():
     creds = Credentials.from_service_account_info(info_kunci, scopes=scope)
     return gspread.authorize(creds).open("Database_RNG_Rizky").get_worksheet(0)
 
-# --- 2. FUNGSI LOGIKA (BBFS & RNG) ---
-def get_bbfs(digits, limit):
+def get_bbfs_smart(digits, limit):
     if not digits: return []
-    # Membuat semua kombinasi yang mungkin
-    all_combos = [''.join(p) for p in itertools.permutations(digits, len(digits))]
-    random.shuffle(all_combos) # Simulasi RNG untuk urutan terbaik
-    return all_combos[:limit]
+    all_combos = list(set([''.join(p) for p in itertools.permutations(digits, len(digits))]))
+    limit = min(int(limit), len(all_combos))
+    return random.sample(all_combos, limit)
 
-# --- 3. UI DASHBOARD ---
-st.set_page_config(page_title="RIZKY RNG PRO V3", layout="wide")
-st.title("🎯 RIZKY SMART RNG SYSTEM V3")
-
+# --- 3. LOGIKA UTAMA ---
 try:
     sheet = init_connection()
     all_data = sheet.get_all_values()
-    df = pd.DataFrame(all_data[1:], columns=all_data[0]) if len(all_data) > 1 else pd.DataFrame()
+    
+    if len(all_data) > 1:
+        df = pd.DataFrame(all_data[1:], columns=all_data[0])
+        df.iloc[:, 2] = df.iloc[:, 2].astype(str).str.strip()
+    else:
+        df = pd.DataFrame()
 
-    tab1, tab2, tab3, tab4 = st.tabs(["📥 INPUT", "📊 STATISTIK", "🔮 PREDIKSI", "🎲 BBFS PRO"])
+    st.title("🎯 RIZKY RNG PRO")
+    st.caption("Sistem Analisis & Prediksi Angka Terpadu")
 
-    # --- TAB 1: INPUT DATA ---
+    tab1, tab2, tab3, tab4 = st.tabs(["📥 DATABASE", "📈 GRAFIK", "🔮 PREDIKSI", "🎲 BBFS"])
+
+    # --- TAB 1: DATABASE ---
     with tab1:
-        with st.form("input_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            tgl = col1.date_input("Tanggal", datetime.now())
-            jam = col2.text_input("Sesi Jam (Contoh: 14.00)")
-            angka = st.text_input("Angka Keluar (4 Digit)")
-            if st.form_submit_button("SIMPAN DATA"):
-                if jam and angka:
-                    sheet.append_row([str(tgl), jam, angka])
-                    st.balloons()
-                    st.success(f"Data {angka} tersimpan!")
-                else: st.warning("Lengkapi data!")
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.subheader("Input Baru")
+            with st.form("form_v4", clear_on_submit=True):
+                tgl = st.date_input("Tanggal", datetime.now())
+                jam = st.text_input("Sesi (Jam)")
+                angka = st.text_input("Hasil (4D)")
+                if st.form_submit_button("SIMPAN DATA"):
+                    if jam and angka:
+                        sheet.append_row([str(tgl), jam, angka])
+                        st.success("Tersimpan!")
+                        st.rerun()
+        with c2:
+            st.subheader("Riwayat Terakhir")
+            if not df.empty:
+                st.dataframe(df.tail(15), use_container_width=True)
+                # Fitur Download (Seperti App Pro)
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button("📥 Download Semua Data", csv, "riwayat_rizky.csv", "text/csv")
 
-    # --- TAB 2: STATISTIK & GRAFIK ---
+    # --- TAB 2: ANALISIS GRAFIK ---
     with tab2:
         if not df.empty:
-            st.subheader("Analisis Statistik Angka")
-            # Ambil digit terakhir dari setiap angka keluar
-            df['LastDigit'] = df.iloc[:, 2].str[-1]
-            count_data = df['LastDigit'].value_counts().reset_index()
-            count_data.columns = ['Angka', 'Frekuensi']
+            st.subheader("Visualisasi Statistik")
+            digits = df.iloc[:, 2].str[-1].tolist()
+            counts = pd.Series(digits).value_counts().reindex([str(i) for i in range(10)], fill_value=0)
             
-            fig = px.bar(count_data, x='Angka', y='Frekuensi', color='Frekuensi', title="Frekuensi Kemunculan Digit Terakhir")
+            fig = px.bar(x=counts.index, y=counts.values, 
+                         labels={'x':'Angka Ekor', 'y':'Jumlah Keluar'},
+                         color=counts.values, color_continuous_scale='Goldenrod')
+            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
             st.plotly_chart(fig, use_container_width=True)
             
-        else:
-            st.info("Belum ada data untuk dianalisis.")
+            sc1, sc2, sc3 = st.columns(3)
+            sc1.metric("HOT (Ekor)", counts.idxmax())
+            sc2.metric("COLD (Ekor)", counts.idxmin())
+            sc3.metric("TOTAL SESI", len(df))
 
-    # --- TAB 3: PREDIKSI (2D - 5D) ---
+    # --- TAB 3: PREDIKSI MULTI-D ---
     with tab3:
-        st.subheader("🔮 Ramuan Prediksi RNG")
-        tipe_prediksi = st.selectbox("Pilih Tipe Prediksi", ["2D", "3D", "4D", "5D"])
+        st.subheader("🔮 Generator Prediksi")
+        tipe = st.radio("Pilih Dimensi:", ["2D", "3D", "4D", "5D"], horizontal=True)
         
         if not df.empty:
-            last_num = df.iloc[-1, 2]
-            st.write(f"Acuan Data Terakhir: **{last_num}**")
+            hot_digit = df.iloc[:, 2].str[-1].mode()[0]
+            if st.button("RUMUS ULANG"): st.rerun()
             
-            # Algoritma Prediksi Sederhana berbasis Hot Number
-            hot_digit = df.iloc[:, 2].str[-1].mode()[0] if not df.empty else "5"
+            def generate(n):
+                return "".join([str(random.randint(0,9)) for _ in range(n-1)]) + hot_digit
             
-            if tipe_prediksi == "2D": hasil = f"{random.randint(0,9)}{hot_digit}"
-            elif tipe_prediksi == "3D": hasil = f"{random.randint(0,9)}{random.randint(0,9)}{hot_digit}"
-            elif tipe_prediksi == "4D": hasil = f"{random.randint(10,99)}{random.randint(0,9)}{hot_digit}"
-            else: hasil = f"{random.randint(10,99)}{random.randint(10,99)}{hot_digit}"
-            
-            st.metric(f"Prediksi {tipe_prediksi} Terbaik", hasil)
-        else: st.warning("Input data dulu di Tab 1!")
+            hasil_prediksi = generate(int(tipe[0]))
+            st.markdown(f"""
+                <div style="background:#1a1a1a; padding:20px; border-radius:15px; border-left: 5px solid #FFD700; text-align:center;">
+                    <h1 style="color:#FFD700; font-size:60px;">{hasil_prediksi}</h1>
+                    <p>Rumus: Hot Ekor ({hot_digit}) + RNG System</p>
+                </div>
+            """, unsafe_allow_html=True)
 
-    # --- TAB 4: BBFS PRO (10-120) ---
+    # --- TAB 4: BBFS MANUAL ---
     with tab4:
-        st.subheader("🎲 BBFS Smart Generator")
-        input_bbfs = st.text_input("Masukkan Angka Main (Contoh: 1234)")
-        jumlah_urutan = st.select_slider("Jumlah Urutan Terbaik", options=[10, 30, 60, 90, 120])
+        st.subheader("🎲 BBFS Smart")
+        input_angka = st.text_input("Angka Main (Contoh: 01458)")
+        jml = st.number_input("Jumlah Urutan Yang Dibutuhkan:", min_value=1, value=25)
         
-        if st.button("Generate BBFS"):
-            if input_bbfs:
-                hasil_bbfs = get_bbfs(input_bbfs, jumlah_urutan)
-                st.write(f"Menampilkan **{len(hasil_bbfs)}** kombinasi terbaik:")
-                st.info(", ".join(hasil_bbfs))
-            else: st.warning("Masukkan angka dulu!")
+        if st.button("GENERATE BBFS"):
+            if input_angka:
+                hasil_list = get_bbfs_smart(input_angka, jml)
+                st.write(f"Berikut **{len(hasil_list)}** urutan terbaik:")
+                st.code(", ".join(hasil_list))
+                st.caption("Klik dua kali pada angka di atas untuk menyalin")
 
 except Exception as e:
-    st.error(f"Sistem Error: {e}")
+    st.info("Sistem sedang sinkronisasi data...")
