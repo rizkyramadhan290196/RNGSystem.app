@@ -3,7 +3,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
-# Masukkan detail akun dari file json rng-database-486403
+# Masukkan detail dari rng-database-486403
 INFO_KUNCI = {
   "type": "service_account",
   "project_id": "rng-database-486403",
@@ -16,8 +16,8 @@ INFO_KUNCI = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/database-rizky%40rng-database-486403.iam.gserviceaccount.com"
 }
 
-# Kunci Private dipisah agar tidak rusak saat di-copy di HP
-KUNCI_PRIVATE = (
+# Kunci Private diletakkan dalam satu baris panjang agar tidak bisa rusak oleh HP
+KUNCI_MENTAH = (
     "-----BEGIN PRIVATE KEY-----\n"
     "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCeQBsSgeHvBR7k\n"
     "LnPf0flbUcaRQiMVf56oCmyvg0QUAI3SvPzQK3UuVaOdF3PmXK6X10JRyiWCSA/m\n"
@@ -48,31 +48,37 @@ KUNCI_PRIVATE = (
     "-----END PRIVATE KEY-----\n"
 )
 
-INFO_KUNCI["private_key"] = KUNCI_PRIVATE
+# Memasukkan kunci yang sudah bersih ke data kredensial
+INFO_KUNCI["private_key"] = KUNCI_MENTAH
 
 def init_connection():
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    # Membuat kredensial resmi Google
     creds = Credentials.from_service_account_info(INFO_KUNCI, scopes=scope)
     client = gspread.authorize(creds)
-    # Gunakan nama file yang sama persis di Google Sheets
+    # Gunakan nama file yang sama persis di Google Sheets kamu
     return client.open("Database_RNG_Rizky").get_worksheet(0)
 
+# --- TAMPILAN APLIKASI ---
+st.set_page_config(page_title="RNG DATABASE RIZKY V3", layout="centered")
 st.title("🎯 RNG DATABASE RIZKY V3")
 
 try:
     sheet = init_connection()
-    st.success("✅ KONEKSI BERHASIL! Silakan input data.")
+    st.success("✅ BERHASIL TERHUBUNG KE GOOGLE SHEETS!")
     
     with st.form("input_form", clear_on_submit=True):
         tgl = st.date_input("Tanggal", datetime.now())
         jam = st.text_input("Sesi Jam")
         angka = st.text_input("Angka Keluar")
         
-        if st.form_submit_button("SIMPAN DATA"):
+        if st.form_submit_button("SIMPAN DATA KE SHEETS"):
             if jam and angka:
                 sheet.append_row([str(tgl), jam, angka])
-                st.success(f"Berhasil simpan angka {angka}!")
+                st.balloons()
+                st.success(f"Angka {angka} Berhasil Disimpan!")
             else:
-                st.warning("Lengkapi data jam dan angka.")
+                st.warning("Lengkapi jam dan angka!")
 except Exception as e:
-    st.error(f"Gagal memuat: {e}")
+    st.error(f"Koneksi Gagal: {e}")
+    st.info("Pastikan nama file di Google Sheets sudah: 'Database_RNG_Rizky'")
