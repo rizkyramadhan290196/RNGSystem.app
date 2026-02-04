@@ -8,11 +8,10 @@ import json
 import itertools
 import random
 
-# --- 1. SETTINGS ---
+# --- 1. SETTINGS & PASSWORD ---
 PASSWORD_RAHASIA = "rizky77" 
-st.set_page_config(page_title="RIZKY RNG ULTIMATE V5", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="RIZKY RNG ULTIMATE V5.2", page_icon="🔥", layout="wide")
 
-# CSS LUXURY GOLD THEME
 st.markdown("""
     <style>
     .stApp { background-color: #050505; color: #ffffff; }
@@ -25,9 +24,15 @@ st.markdown("""
         width: 100%; border-radius: 12px; height: 45px;
         background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
         color: black; font-weight: bold; font-size: 16px; border: none;
-        box-shadow: 0px 4px 15px rgba(255, 215, 0, 0.3);
     }
-    .stTable { background-color: #111; border-radius: 10px; }
+    .analisis-box {
+        padding: 20px; border-radius: 15px; background: #111; 
+        border: 1px solid #FFD700; margin: 10px 0; line-height: 1.6;
+    }
+    .rekomendasi-angka {
+        font-size: 24px; color: #FFD700; font-weight: bold; text-align: center;
+        background: #222; padding: 10px; border-radius: 10px; border: 2px dashed #FFD700;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -59,7 +64,7 @@ try:
     df['Angka'] = df['Angka'].astype(str).str.strip()
     data_exists = not df.empty
 
-    st.title("🎯 RIZKY RNG ULTIMATE V5.0")
+    st.title("🎯 RIZKY RNG ULTIMATE V5.2")
 
     tab_db, tab_stat, tab_pred, tab_bbfs = st.tabs(["📥 DATA CENTER", "📊 ANALISIS SAKTI", "🔮 PREDIKSI RNG", "🎲 BBFS"])
 
@@ -68,101 +73,86 @@ try:
         with c1:
             with st.form("input_form"):
                 tgl = st.date_input("Tanggal", datetime.now())
-                jam = st.text_input("Sesi/Jam (Contoh: SGP 17.00)")
+                jam = st.text_input("Sesi/Jam")
                 val = st.text_input("Hasil Angka")
                 if st.form_submit_button("SIMPAN DATA"):
                     if jam and val.isdigit():
                         sheet.append_row([str(tgl), jam, val])
-                        st.success("Data Berhasil Dikunci!"); st.rerun()
-            if st.button("🗑️ HAPUS BARIS TERAKHIR"):
+                        st.success("Tersimpan!"); st.rerun()
+            if st.button("🗑️ HAPUS TERAKHIR"):
                 sheet.delete_rows(len(all_data)); st.rerun()
         with c2:
-            st.markdown("### 📜 10 Riwayat Terakhir")
+            st.markdown("### 📜 Riwayat Terakhir")
             if data_exists: st.table(df.tail(10))
 
     with tab_stat:
         if data_exists:
-            # Mengambil ekor
             ekor_list = [int(a[-1]) for a in df['Angka'] if a and a[-1].isdigit()]
-            
             if ekor_list:
-                col_a, col_b = st.columns(2)
-                
+                counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
+                hot_num = counts.idxmax()
+                cold_num = counts.idxmin()
                 ganjil = len([x for x in ekor_list if x % 2 != 0])
                 genap = len([x for x in ekor_list if x % 2 == 0])
-                kecil = len([x for x in ekor_list if x <= 4])
-                besar = len([x for x in ekor_list if x >= 5])
 
-                with col_a:
-                    fig_gg = px.pie(values=[ganjil, genap], names=['Ganjil', 'Genap'], 
-                                   title="⚖️ TREN GENAP/GANJIL",
-                                   color_discrete_sequence=['#FFD700', '#222222']) # Gold & Black
-                    fig_gg.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_gg, use_container_width=True)
+                # --- SMART ANALYST & RECOMMENDATION ---
+                st.markdown("### 🧠 ANALISIS & REKOMENDASI PASANG")
                 
-                with col_b:
-                    fig_bk = px.pie(values=[kecil, besar], names=['Kecil (0-4)', 'Besar (5-9)'], 
-                                   title="📏 TREN BESAR/KECIL",
-                                   color_discrete_sequence=['#B8860B', '#444444']) # Bronze & Dark Grey
-                    fig_bk.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_bk, use_container_width=True)
+                # Menentukan angka rekomendasi (Hot + 1 Cold paling potensial)
+                rekomendasi_pasang = f"{hot_num}, {cold_num}, {random.randint(0,9)}"
+                
+                st.markdown(f"""
+                <div class="analisis-box">
+                🔍 <b>Hasil Scan Database:</b><br>
+                Tren saat ini menunjukkan dominasi angka <b>{"GANJIL" if ganjil > genap else "GENAP"}</b>. 
+                Angka <b>{hot_num}</b> adalah jalur paling licin (HOT), sementara <b>{cold_num}</b> sedang menyimpan energi besar untuk keluar (COLD).<br><br>
+                ✅ <b>ANGKA PILIHAN RIZKY UNTUK DIPASANG (EKOR):</b>
+                <div class="rekomendasi-angka">{rekomendasi_pasang}</div>
+                <br>
+                💡 <i>Note: Utamakan pasang angka di atas sebagai ekor kuat di racikan 2D/3D/4D kamu.</i>
+                </div>
+                """, unsafe_allow_html=True)
 
-                # Frekuensi Bar Chart
-                counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
-                fig_bar = px.bar(x=counts.index, y=counts.values, 
-                                 title="📊 FREKUENSI DIGIT TERAKHIR",
-                                 labels={'x':'Digit', 'y':'Jumlah Keluar'},
-                                 color=counts.values, color_continuous_scale='YlOrBr')
-                fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
-                st.plotly_chart(fig_bar, use_container_width=True)
-            else: st.info("Tambahkan data angka untuk melihat statistik.")
-        else: st.warning("Database masih kosong!")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.plotly_chart(px.pie(values=[ganjil, genap], names=['Ganjil', 'Genap'], title="⚖️ GENAP/GANJIL", color_discrete_sequence=['#FFD700', '#222222']), use_container_width=True)
+                with col_b:
+                    st.plotly_chart(px.bar(x=counts.index, y=counts.values, title="📊 FREKUENSI", color=counts.values, color_continuous_scale='YlOrBr'), use_container_width=True)
+            else: st.info("Tambahkan data untuk memulai analisis.")
+        else: st.warning("Database kosong!")
 
     with tab_pred:
         st.subheader("🔮 Hybrid RNG Prediction System")
         if data_exists:
             ca, cb = st.columns(2)
-            tgl_p = ca.date_input("Target Hari/Tanggal", datetime.now() + timedelta(days=1))
+            tgl_p = ca.date_input("Target Hari", datetime.now() + timedelta(days=1))
             mode = cb.selectbox("Pilih Target:", ["2D", "3D", "4D", "5D"])
             jml = st.number_input("Jumlah Baris:", 1, 120, 25)
 
             if st.button("🔥 RACIK ANGKA SAKTI"):
-                # Seed unik berdasarkan tanggal
                 random.seed(int(tgl_p.strftime("%Y%m%d")))
-                
-                # Identifikasi Hot & Cold
                 ekor_list = [int(a[-1]) for a in df['Angka'] if a and a[-1].isdigit()]
                 counts = pd.Series(ekor_list).value_counts().reindex(range(10), fill_value=0)
-                hot = str(counts.idxmax())
-                cold = str(counts.idxmin())
-                
+                hot, cold = str(counts.idxmax()), str(counts.idxmin())
                 results = []
                 for _ in range(jml):
-                    # Campuran 70% Hot, 30% Cold
                     kunci = hot if random.random() < 0.7 else cold
                     prefix = "".join([str(random.randint(0,9)) for _ in range(int(mode[0])-1)])
                     results.append(prefix + kunci)
-                
-                st.markdown(f"### 📅 Prediksi {mode} Untuk {tgl_p.strftime('%d-%m-%Y')}")
+                st.markdown(f"### 📅 Prediksi {mode} - {tgl_p.strftime('%d-%m-%Y')}")
                 st.code(", ".join(list(set(results))))
-                st.success(f"Analisis: Kunci Utama ({hot}), Kunci Cadangan ({cold})")
-        else: st.warning("Sistem membutuhkan data di Data Center untuk merumus!")
+        else: st.warning("Isi database dulu!")
 
     with tab_bbfs:
-        st.subheader("🎲 BBFS Generator")
-        b_in = st.text_input("Input Angka Main (Contoh: 12345)")
-        b_jml = st.number_input("Tampilkan Berapa Baris:", 1, 100, 25)
+        b_in = st.text_input("Input Angka Main")
         if st.button("GENERATE BBFS"):
             if b_in:
                 combos = [''.join(p) for p in itertools.permutations(b_in, len(b_in))]
-                final_bbfs = random.sample(combos, min(len(combos), b_jml))
-                st.code(", ".join(final_bbfs))
+                st.code(", ".join(random.sample(combos, min(len(combos), 25))))
 
-    # Tombol Logout di Sidebar
     st.sidebar.title("MENU")
-    if st.sidebar.button("🔒 Keluar & Kunci"):
-        del st.session_state["password_correct"]
-        st.rerun()
+    if st.sidebar.button("🔒 Keluar"):
+        del st.session_state["password_correct"]; st.rerun()
 
 except Exception as e:
     st.error(f"⚠️ Terjadi Sinkronisasi: {e}")
