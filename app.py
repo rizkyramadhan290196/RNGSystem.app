@@ -10,7 +10,7 @@ import random
 
 # --- 1. SETTINGS & PASSWORD ---
 PASSWORD_RAHASIA = "rizky77" 
-st.set_page_config(page_title="RIZKY RNG V5.4.2 GOLD", page_icon="🚀", layout="wide")
+st.set_page_config(page_title="RIZKY RNG V6.0 ULTIMATE", page_icon="🚀", layout="wide")
 
 st.markdown("""
     <style>
@@ -23,13 +23,14 @@ st.markdown("""
         color: black; font-weight: bold;
     }
     .analisis-box { padding: 20px; border-radius: 15px; background: #111; border: 1px solid #FFD700; margin-bottom: 20px; }
-    .rekomendasi-angka { font-size: 22px; color: #FFD700; font-weight: bold; text-align: center; }
+    .bbfs-box { padding: 15px; background: #1a1a1a; border-left: 5px solid #FFD700; border-radius: 8px; margin: 10px 0; }
+    .highlight-gold { color: #FFD700; font-weight: bold; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 2. SECURITY ---
 if "password_correct" not in st.session_state:
-    st.markdown("<h3 style='text-align: center; color: #FFD700; margin-top: 50px;'>🔐 RIZKY GOLDEN SYSTEM</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #FFD700; margin-top: 50px;'>🔐 RIZKY GOLDEN SYSTEM V6.0</h3>", unsafe_allow_html=True)
     pwd = st.text_input("Enter Key:", type="password")
     if st.button("UNLOCK"):
         if pwd == PASSWORD_RAHASIA:
@@ -59,12 +60,11 @@ try:
     
     data_exists = not df.empty
 
-    st.title("🎯 RIZKY RNG ULTIMATE V5.4.2")
+    st.title("🎯 RIZKY RNG ULTIMATE V6.0")
 
-    # --- PEMBUATAN TAB (Penting agar tidak NameError) ---
-    tab_db, tab_stat, tab_pred, tab_bbfs = st.tabs(["📥 DATA CENTER", "📊 ANALISIS", "🔮 PREDIKSI", "🎲 BBFS PRO"])
+    tab_db, tab_stat, tab_pred, tab_bbfs = st.tabs(["📥 DATA CENTER", "📊 ANALISIS", "🔮 PREDIKSI ULTIMATE", "🎲 BBFS PRO V6"])
 
-    # --- TAB 1: DATA CENTER (INPUT & HAPUS) ---
+    # --- TAB 1: DATA CENTER ---
     with tab_db:
         c1, c2 = st.columns([1, 2])
         with c1:
@@ -78,25 +78,6 @@ try:
                     if val.isdigit() and sheet:
                         sheet.append_row([str(tgl), jam, val])
                         st.success("Tersimpan!"); st.rerun()
-            
-            st.markdown("---")
-            st.subheader("🗑️ Alat Pembersih")
-            col_del1, col_del2 = st.columns(2)
-            with col_del1:
-                if st.button("Hapus Terakhir"):
-                    if sheet and len(all_data) > 1:
-                        sheet.delete_rows(len(all_data))
-                        st.warning("Data terakhir dihapus!")
-                        st.rerun()
-            with col_del2:
-                confirm = st.checkbox("Konfirmasi Reset")
-                if confirm:
-                    if st.button("HAPUS SEMUA"):
-                        if sheet:
-                            sheet.resize(rows=1)
-                            sheet.resize(rows=100)
-                            st.error("DATABASE DIBERSIHKAN!")
-                            st.rerun()
         with c2:
             st.markdown("### 📜 Log 8 Data Terakhir")
             if data_exists: st.table(df.tail(8))
@@ -109,32 +90,66 @@ try:
             ekor_list = [int(a[-1]) for a in recent_df['Angka'] if a and a[-1].isdigit()]
             if ekor_list:
                 hot_e = str(pd.Series(ekor_list).value_counts().idxmax())
-                jml_data = len(df)
-                sinyal = "🟢 SINYAL KUAT" if jml_data > 100 else "🟡 SINYAL SEDANG"
-                
                 st.markdown(f"""<div class="analisis-box">
-                <p style="color: #FFD700;">EKOR SAKTI: {hot_e}</p>
-                <p style="text-align: center;">{sinyal} ({jml_data} Data)</p>
+                <p style="color: #FFD700; font-size: 20px;">🔥 EKOR SAKTI SAAT INI: {hot_e}</p>
+                <p>Analisis berdasarkan {len(df)} data yang tersimpan.</p>
                 </div>""", unsafe_allow_html=True)
-                st.plotly_chart(px.bar(x=list(range(10)), y=[ekor_list.count(i) for i in range(10)], title="Tren Ekor", color_discrete_sequence=['#FFD700']), use_container_width=True)
+                st.plotly_chart(px.bar(x=list(range(10)), y=[ekor_list.count(i) for i in range(10)], title="Tren Frekuensi Angka", color_discrete_sequence=['#FFD700']), use_container_width=True)
 
-    # --- TAB 3: PREDIKSI ---
+    # --- TAB 3: PREDIKSI ULTIMATE V6 ---
     with tab_pred:
-        mode = st.selectbox("Target:", ["2D", "3D", "4D", "5D"])
-        if st.button("🔥 GENERATE"):
-            res = ["".join([str(random.randint(0,9)) for _ in range(int(mode[0]))]) for _ in range(15)]
-            st.code(", ".join(res))
+        st.subheader("🔮 Generator Prediksi Kompleks")
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            mode_p = st.selectbox("Pilih Tipe:", ["5D", "4D", "3D", "2D"])
+            jml_p = st.slider("Jumlah Urutan:", 1, 20, 7)
+        
+        if st.button("🚀 GENERATE PREDIKSI V6"):
+            if data_exists:
+                # LOGIKA V6: Ambil 5 angka terakhir sebagai pondasi
+                last_result = df['Angka'].iloc[-1]
+                base_nums = list(set([int(x) for x in last_result if x.isdigit()]))
+                master_nums = [0, 2, 3, 5, 8]
+                
+                # Racikan kolam angka (Weighted Pool)
+                pool = base_nums * 4 + master_nums * 2 + [7, 9]
+                
+                hasil_prediksi = []
+                for _ in range(jml_p):
+                    random.shuffle(pool)
+                    res = "".join([str(x) for x in pool[:int(mode_p[0])]])
+                    hasil_prediksi.append(res)
+                
+                st.markdown("### 🎯 Hasil Tembakan Jitu:")
+                for i, h in enumerate(hasil_prediksi, 1):
+                    st.markdown(f"**Urutan {i}:** `{h}`")
+            else:
+                st.warning("Input data dulu di Data Center!")
 
-    # --- TAB 4: BBFS ---
+    # --- TAB 4: BBFS PRO V6 ---
     with tab_bbfs:
-        b_in = st.text_input("Angka Main")
-        b_mode = st.radio("Target:", ["2D", "3D", "4D"], horizontal=True)
-        if st.button("GENERATE BBFS"):
-            if b_in and len(b_in) >= int(b_mode[0]):
-                combos = list(itertools.permutations(b_in, int(b_mode[0])))
-                hasil = ["".join(p) for p in combos]
-                random.shuffle(hasil)
-                st.code(", ".join(hasil[:30]))
+        st.subheader("🎲 Sistem BBFS 5D & Poltar")
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            angka_main = st.text_input("Masukkan Angka Main (Bebas):", value="02789")
+            target_b = st.multiselect("Target Output:", ["5D", "4D", "3D", "2D"], default=["5D", "4D"])
+        
+        if st.button("🔥 GENERATE BBFS V6"):
+            if len(angka_main) >= 2:
+                # BBFS 5D Rekomendasi
+                st.markdown('<div class="bbfs-box">', unsafe_allow_html=True)
+                st.markdown(f"💰 **REKOMENDASI BBFS 5D:** <span class='highlight-gold'>{' - '.join(list(angka_main[:5]))}</span>", unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Kombinasi berdasarkan target
+                for t in target_b:
+                    st.write(f"**Pola Tarung {t}:**")
+                    combos = list(itertools.permutations(angka_main, int(t[0])))
+                    hasil_b = ["".join(p) for p in combos]
+                    random.shuffle(hasil_b)
+                    st.code(", ".join(hasil_b[:20])) # Tampilkan 20 baris terkuat
+            else:
+                st.error("Masukkan minimal 2 angka!")
 
     if st.sidebar.button("🔒 Logout"):
         del st.session_state["password_correct"]; st.rerun()
