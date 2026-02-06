@@ -8,7 +8,7 @@ import json
 import random
 
 # --- 1. CONFIG & THEME ---
-st.set_page_config(page_title="RIZKY V9.4 COMMANDER", page_icon="⚔️", layout="wide")
+st.set_page_config(page_title="RIZKY V9.5 COMPLETE", page_icon="⚔️", layout="wide")
 PASSWORD_RAHASIA = "rizky77"
 
 st.markdown("""
@@ -16,9 +16,7 @@ st.markdown("""
     .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
     .grid-item { background: #000; border: 1px solid #FFD700; border-radius: 5px; padding: 10px; text-align: center; color: #00FF00; font-family: 'Courier New'; font-size: 16px; font-weight: bold; }
     .ai-box { background: #001220; border-left: 10px solid #FF4B4B; padding: 20px; border-radius: 15px; color: white; border: 1px solid #333; }
-    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; border: 2px solid #FF4B4B; }
-    /* Style khusus tombol pilihan digit agar mencolok */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) button { background-color: #1a1a1a; color: #FF4B4B; }
+    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; border: 2px solid #FF4B4B; height: 3.5em; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -34,7 +32,7 @@ def init_conn():
     except: return None
 
 if "password_correct" not in st.session_state:
-    st.title("⚔️ RIZKY COMMANDER V9.4")
+    st.title("⚔️ RIZKY V9.5 COMPLETE")
     pwd = st.text_input("Akses Kunci:", type="password")
     if st.button("UNLOCK SYSTEM"):
         if pwd == PASSWORD_RAHASIA:
@@ -53,13 +51,11 @@ if db:
         c1, c2 = st.columns(2)
         with c1: t_in = st.date_input("Tanggal:", datetime.now())
         with c2: a_in = st.text_input("Angka Result:", placeholder="Contoh: 8827")
-        
         if st.button("💾 SIMPAN KE DATABASE"):
             if a_in:
                 laci = f"{len(a_in)}D"
                 db.worksheet(laci).append_row([str(t_in), a_in])
-                st.success(f"Tersimpan di {laci}!")
-                st.rerun()
+                st.success(f"Tersimpan di {laci}!"); st.rerun()
 
         st.divider()
         st.subheader("🗑️ History & Hapus")
@@ -83,71 +79,73 @@ if db:
                 fig = px.area(df_an, y='Angka', title=f"Trend Gerak {l_an}")
                 fig.update_traces(line_color='#FF4B4B')
                 st.plotly_chart(fig, use_container_width=True)
-                st.markdown(f'<div class="ai-box"><h3>🤖 ANALISA TAJAM:</h3>Pola terakhir <b>{df_an["Angka"].iloc[-1]}</b> menunjukkan kejenuhan. Siapkan Sniper di digit yang jarang muncul.</div>', unsafe_allow_html=True)
-            else: st.warning("Butuh data input!")
-        except: st.error("Laci Error.")
+                st.markdown(f'<div class="ai-box">🤖 AI: Result {df_an["Angka"].iloc[-1]} terdeteksi. Gunakan tombol digit di Tab Sniper untuk eksekusi.</div>', unsafe_allow_html=True)
+        except: st.warning("Data belum cukup.")
 
-    # --- TAB 3: SNIPER JITU (DENGAN TOMBOL DIGIT) ---
+    # --- TAB 3: SNIPER JITU (FIXED 5D KEMBALI) ---
     with tab3:
         st.subheader("🎯 Sniper Target Digit")
-        # TOMBOL PILIHAN DIGIT BESAR
-        col_d1, col_d2, col_d3 = st.columns(3)
-        with col_d1: d4 = st.button("🔥 SNIPER 4D")
-        with col_d2: d3 = st.button("🔥 SNIPER 3D")
-        with col_d3: d2 = st.button("🔥 SNIPER 2D")
+        # Baris Tombol 5D dan 4D
+        col_s1, col_s2 = st.columns(2)
+        with col_s1: s5 = st.button("🔥 SNIPER 5D")
+        with col_s2: s4 = st.button("🔥 SNIPER 4D")
+        # Baris Tombol 3D dan 2D
+        col_s3, col_s4 = st.columns(2)
+        with col_s3: s3 = st.button("🔥 SNIPER 3D")
+        with col_s4: s2 = st.button("🔥 SNIPER 2D")
         
-        target_digit = None
-        if d4: target_digit = 4
-        if d3: target_digit = 3
-        if d2: target_digit = 2
+        t_digit = None
+        if s5: t_digit = 5
+        if s4: t_digit = 4
+        if s3: t_digit = 3
+        if s2: t_digit = 2
 
-        if target_digit:
+        if t_digit:
             try:
                 hist = "".join(df_an['Angka'].astype(str).tolist())
                 pool = list(hist) + [str(i) for i in range(10)]
                 snip = []
                 while len(snip) < 10:
                     random.shuffle(pool)
-                    r = "".join(pool[:target_digit])
+                    r = "".join(pool[:t_digit])
                     if r not in snip: snip.append(r)
-                
-                st.success(f"### ⚔️ HASIL SNIPER {target_digit}D")
+                st.success(f"### ⚔️ HASIL SNIPER {t_digit}D")
                 st.markdown(f"## 🏆 UTAMA: {snip[0]} — {snip[3]} — {snip[7]}")
-                grid_snip = '<div class="grid-container">'
-                for n in snip: grid_snip += f'<div class="grid-item">{n}</div>'
-                grid_snip += '</div>'
-                st.markdown(grid_snip, unsafe_allow_html=True)
+                grid = '<div class="grid-container">'
+                for n in snip: grid += f'<div class="grid-item">{n}</div>'
+                grid += '</div>'; st.markdown(grid, unsafe_allow_html=True)
             except: st.error("Input data dulu di Tab 1!")
 
-    # --- TAB 4: BBFS ULTRA (DENGAN TOMBOL DIGIT) ---
+    # --- TAB 4: BBFS ULTRA (FIXED 5D KEMBALI) ---
     with tab4:
         st.subheader("🔄 Ultra BBFS Bolak-Balik")
         b_in = st.text_input("Ketik Angka BBFS:", placeholder="Contoh: 82731")
+        # Baris Tombol 5D dan 4D
+        col_b1, col_b2 = st.columns(2)
+        with col_b1: b5 = st.button("💥 ACAK 5D")
+        with col_b2: b4 = st.button("💥 ACAK 4D")
+        # Baris Tombol 3D dan 2D
+        col_b3, col_b4 = st.columns(2)
+        with col_b3: b3 = st.button("💥 ACAK 3D")
+        with col_b4: b2 = st.button("💥 ACAK 2D")
         
-        col_b1, col_b2, col_b3 = st.columns(3)
-        with col_b1: b4 = st.button("💥 ACAK 4D")
-        with col_b2: b3 = st.button("💥 ACAK 3D")
-        with col_b3: b2 = st.button("💥 ACAK 2D")
-        
-        b_target = None
-        if b4: b_target = 4
-        if b3: b_target = 3
-        if b2: b_target = 2
+        b_t = None
+        if b5: b_t = 5
+        if b4: b_t = 4
+        if b3: b_t = 3
+        if b2: b_t = 2
 
-        if b_target and b_in:
+        if b_t and b_in:
             pool_b = list(b_in); hasil = []
             for _ in range(1000):
                 temp = pool_b.copy(); random.shuffle(temp)
-                res = "".join(temp[:b_target])
+                res = "".join(temp[:b_t])
                 if res not in hasil: hasil.append(res)
                 if len(hasil) >= 100: break
-            
-            st.info(f"Target: {b_target}D | BBFS: {b_in} | Total: {len(hasil)} Urutan")
+            st.info(f"Target: {b_t}D | BBFS: {b_in} | Total: {len(hasil)} Urutan")
             grid_b = '<div class="grid-container">'
             for x in hasil: grid_b += f'<div class="grid-item">{x}</div>'
-            grid_b += '</div>'
-            st.markdown(grid_b, unsafe_allow_html=True)
-        elif b_target and not b_in:
-            st.warning("Masukkan angka BBFS dulu!")
+            grid_b += '</div>'; st.markdown(grid_b, unsafe_allow_html=True)
+        elif b_t and not b_in: st.warning("Masukkan angka BBFS dulu!")
 
 else: st.error("Koneksi Error!")
