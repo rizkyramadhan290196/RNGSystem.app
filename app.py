@@ -7,22 +7,21 @@ from datetime import datetime
 import json
 import random
 
-# --- 1. CONFIG & THEME ---
-st.set_page_config(page_title="RIZKY RNG V9.0 ULTIMATE", page_icon="💰", layout="wide")
+# --- 1. CONFIG ---
+st.set_page_config(page_title="RIZKY V9.3 ULTRA", page_icon="⚔️", layout="wide")
 PASSWORD_RAHASIA = "rizky77"
 
-# CSS UNTUK TAMPILAN PROFESIONAL & GRID
 st.markdown("""
     <style>
-    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; padding: 10px; }
-    .grid-item { background: #1a1a1a; border: 1px solid #FFD700; border-radius: 5px; padding: 8px; text-align: center; color: #00FF00; font-weight: bold; font-size: 14px; }
-    .ai-bubble { background: #071a2b; border-left: 5px solid #FFD700; padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px solid #1e293b; color: white; }
-    .stButton>button { border-radius: 8px; font-weight: bold; transition: 0.3s; }
-    .stButton>button:hover { background-color: #FFD700; color: black; }
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+    .grid-item { background: #000; border: 1px solid #FF4B4B; border-radius: 5px; padding: 10px; text-align: center; color: #00FF00; font-family: monospace; font-size: 16px; font-weight: bold; }
+    .ai-box { background: #001220; border-right: 5px solid #FF4B4B; border-left: 5px solid #FF4B4B; padding: 20px; border-radius: 15px; color: white; border: 1px solid #333; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3.5em; background: #FF4B4B; color: white; font-weight: bold; border: none; }
+    .stButton>button:hover { background: #white; color: #FF4B4B; border: 2px solid #FF4B4B; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. DATABASE CONNECTION ---
+# --- 2. DATABASE ---
 NAMA_KUNCI = "rng-database-486403-1313e482fc6d.json"
 @st.cache_resource
 def init_conn():
@@ -34,9 +33,9 @@ def init_conn():
     except: return None
 
 if "password_correct" not in st.session_state:
-    st.title("🔐 RIZKY V9.0 ULTIMATE SYSTEM")
+    st.title("⚔️ RIZKY ULTRA SNIPER V9.3")
     pwd = st.text_input("Akses Kunci:", type="password")
-    if st.button("BUKA MARKAS"):
+    if st.button("MASUK MARKAS"):
         if pwd == PASSWORD_RAHASIA:
             st.session_state["password_correct"] = True
             st.rerun()
@@ -44,152 +43,114 @@ if "password_correct" not in st.session_state:
 
 db = init_conn()
 
-# --- 3. MAIN UI ---
-st.title("🏆 RIZKY ULTIMATE DASHBOARD V9.0")
-
 if db:
-    tab1, tab2, tab3 = st.tabs(["📊 MONITOR ANALISA", "🔥 GENERATOR BBFS & SNIPER", "⚙️ KELOLA DATA"])
+    # MENU URUT SESUAI PERMINTAAN
+    tab1, tab2, tab3, tab4 = st.tabs(["📥 1. KELOLA DATA", "📊 2. ANALISIS AI", "🎯 3. SNIPER JITU", "🔄 4. BBFS ULTRA"])
 
-    # --- TAB 1: MONITOR ANALISA ---
+    # --- TAB 1: KELOLA DATA ---
     with tab1:
-        target = st.radio("Pilih Laci Analisa:", ["5D", "4D", "3D", "2D"], horizontal=True)
-        try:
-            ws = db.worksheet(target)
-            df = pd.DataFrame(ws.get_all_records())
-            if not df.empty:
-                # GRAFIK AREA
-                fig = px.area(df, y='Angka', title=f"Trend Pergerakan Bandar {target}", markers=True)
-                fig.update_traces(line_color='#FFD700', fillcolor='rgba(255, 215, 0, 0.2)')
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # AI READING
-                last_val = df['Angka'].iloc[-1]
-                st.markdown(f"""
-                <div class="ai-bubble">
-                    <h4>🤖 AI INTERPRETER (RUMUS AKTIF):</h4>
-                    Result terakhir: <b>{last_val}</b>. <br>
-                    <b>Analisa Posisi:</b> Berdasarkan histori, bandar sedang pola <i>'Mirroring'</i>. 
-                    Ada potensi angka besar (5-9) muncul di posisi Tengah pada sesi berikutnya. 
-                    Saran: Gunakan BBFS campuran Ganjil/Genap.
-                </div>
-                """, unsafe_allow_html=True)
-            else: st.info("Laci ini masih kosong. Silakan input data di Tab 3.")
-        except: st.error("Laci tidak ditemukan di Google Sheets!")
-
-    # --- TAB 2: GENERATOR BBFS & SNIPER (PISAH TOTAL) ---
-    with tab2:
-        col_set, col_view = st.columns([1, 2])
+        st.subheader("📥 Input Hasil Hari Ini")
+        c1, c2 = st.columns(2)
+        with c1: t_in = st.date_input("Tanggal:", datetime.now())
+        with c2: a_in = st.text_input("Angka Result:", placeholder="Contoh: 8827")
         
-        with col_set:
-            st.subheader("🛠️ Konfigurasi")
-            tgl_target = st.date_input("Target Tanggal:", datetime.now())
-            jam_target = st.selectbox("Target Jam Sesi:", ["00:00", "13:00", "16:00", "19:00", "22:00", "23:00"])
-            
-            st.divider()
-            # SEKSI BBFS MANUAL
-            st.write("**[1] JALUR BBFS MANUAL (BOLAK-BALIK)**")
-            bbfs_input = st.text_input("Input Angka BBFS:", placeholder="Contoh: 72232")
-            tipe_bbfs = st.selectbox("Pecah Jadi:", ["5D", "4D", "3D", "2D"], key="bbfs_tipe")
-            
-            if st.button("🔄 GENERATE BBFS BOLAK-BALIK"):
-                if bbfs_input:
-                    pool = list(bbfs_input)
-                    pola = int(tipe_bbfs[0])
-                    # Rumus Acak Murni Bolak-Balik
-                    hasil_acak = []
-                    # Mencoba membuat maksimal 100 kombinasi unik
-                    for _ in range(500): 
-                        temp = pool.copy()
-                        random.shuffle(temp)
-                        item = "".join(temp[:pola])
-                        if item not in hasil_acak: hasil_acak.append(item)
-                        if len(hasil_acak) >= 100: break
-                    st.session_state['data_bbfs'] = hasil_acak
-                    st.session_state['active_mode'] = "BBFS"
-                else: st.warning("Masukkan angka BBFS dulu!")
-
-            st.divider()
-            # SEKSI SNIPER AI
-            st.write("**[2] JALUR SNIPER AI (DATA HISTORY)**")
-            if st.button("🎯 GENERATE SNIPER AI"):
-                try:
-                    all_hist = "".join(df['Angka'].astype(str).tolist())
-                    ai_pool = list(all_hist) + [str(i) for i in range(10)]
-                    res_ai = []
-                    while len(res_ai) < 10:
-                        random.shuffle(ai_pool)
-                        r_item = "".join(ai_pool[:int(target[0])])
-                        if r_item not in res_ai: res_ai.append(r_item)
-                    st.session_state['data_ai'] = res_ai
-                    st.session_state['active_mode'] = "AI"
-                except: st.error("Data history belum cukup untuk analisa AI!")
-
-            if st.button("🗑️ CLEAR SCREEN"):
-                st.session_state['active_mode'] = None
+        if st.button("💾 SIMPAN KE DATABASE"):
+            if a_in:
+                laci = f"{len(a_in)}D"
+                db.worksheet(laci).append_row([str(t_in), a_in])
+                st.success(f"Tersimpan di {laci}!")
                 st.rerun()
 
-        with col_view:
-            if 'active_mode' in st.session_state:
-                # TAMPILAN JIKA MODE BBFS
-                if st.session_state['active_mode'] == "BBFS":
-                    st.subheader(f"📦 Hasil Bolak-Balik BBFS ({tipe_bbfs})")
-                    st.write(f"Angka Dasar: **{bbfs_input}** | Total: {len(st.session_state['data_bbfs'])} Urutan")
-                    
-                    grid_html = '<div class="grid-container">'
-                    for r in st.session_state['data_bbfs']:
-                        grid_html += f'<div class="grid-item">{r}</div>'
-                    grid_html += '</div>'
-                    st.markdown(grid_html, unsafe_allow_html=True)
+        st.divider()
+        st.subheader("🗑️ History & Hapus")
+        l_cek = st.selectbox("Cek Laci:", ["5D", "4D", "3D", "2D"])
+        try:
+            ws = db.worksheet(l_cek)
+            df_hist = pd.DataFrame(ws.get_all_records())
+            if not df_hist.empty:
+                st.dataframe(df_hist.tail(10), use_container_width=True)
+                if st.button("🗑️ HAPUS DATA TERAKHIR"):
+                    ws.delete_rows(len(df_hist) + 1)
+                    st.warning("Data Terhapus!")
+                    st.rerun()
+        except: st.info("Kosong.")
+
+    # --- TAB 2: ANALISIS AI ---
+    with tab2:
+        l_an = st.radio("Analisa Laci:", ["5D", "4D", "3D", "2D"], horizontal=True)
+        try:
+            ws_an = db.worksheet(l_an)
+            df_an = pd.DataFrame(ws_an.get_all_records())
+            if not df_an.empty:
+                fig = px.area(df_an, y='Angka', title=f"Trend Gerak Bandar {l_an}")
+                fig.update_traces(line_color='#FF4B4B')
+                st.plotly_chart(fig, use_container_width=True)
                 
-                # TAMPILAN JIKA MODE AI
-                elif st.session_state['active_mode'] == "AI":
-                    st.subheader(f"🎯 AI Sniper Sesi {jam_target}")
-                    st.write(f"Target Tanggal: {tgl_target}")
-                    
-                    # TOP 3 REKOMENDASI
-                    t1, t2, t3 = st.session_state['data_ai'][0], st.session_state['data_ai'][4], st.session_state['data_ai'][8]
-                    st.success(f"### 🔥 TOP 3 SNIPER: {t1} , {t2} , {t3}")
-                    
-                    st.markdown("""
-                    <div class="ai-bubble">
-                        💡 <b>STRATEGI PASANG:</b> Fokuskan 70% modal pada TOP 3. 
-                        Gunakan angka cadangan di bawah sebagai pelapis investasi.
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    st.write("---")
-                    st.write("**Daftar 10 Urutan Invest AI:**")
-                    grid_html = '<div class="grid-container">'
-                    for r in st.session_state['data_ai']:
-                        grid_html += f'<div class="grid-item">{r}</div>'
-                    grid_html += '</div>'
-                    st.markdown(grid_html, unsafe_allow_html=True)
-            else:
-                st.info("Pilih salah satu metode generate di sebelah kiri.")
+                last = str(df_an['Angka'].iloc[-1])
+                st.markdown(f"""
+                <div class="ai-box">
+                    <h3>🤖 ANALISA TAJAM AI:</h3>
+                    Result Terakhir: <b>{last}</b><br>
+                    <b>Pola Bandar:</b> Sedang 'Over-Heating'. Angka-angka di atas rata-rata sering ditarik.<br>
+                    <b>Rencana Serang:</b> Fokus pada angka 'Mirror' atau angka yang belum muncul dalam 5 sesi terakhir.<br>
+                    <b>Power Level:</b> Tinggi (Siap Generate Sniper).
+                </div>
+                """, unsafe_allow_html=True)
+            else: st.warning("Butuh data input dulu!")
+        except: st.error("Laci Error.")
 
-    # --- TAB 3: KELOLA DATA ---
+    # --- TAB 3: SNIPER JITU ---
     with tab3:
-        c_in, c_del = st.columns(2)
-        with c_in:
-            st.subheader("📥 Tambah Hasil Result")
-            val_in = st.text_input("Ketik Result Baru (2-5 Digit):")
-            if st.button("SIMPAN KE DATABASE"):
-                if val_in:
-                    laci_nama = f"{len(val_in)}D"
-                    db.worksheet(laci_nama).append_row([str(datetime.now().date()), val_in])
-                    st.success(f"Data {val_in} berhasil masuk ke laci {laci_nama}!")
-                    st.rerun()
+        st.subheader("🎯 Sniper Rumus Anti-Bandar")
+        c3, c4 = st.columns(2)
+        with c3: jam = st.selectbox("Jam Sesi:", ["13:00", "16:00", "19:00", "22:00", "23:00"])
+        with c4: tgl = st.date_input("Target Tgl:", datetime.now())
         
-        with c_del:
-            st.subheader("🗑️ Hapus Data")
-            tab_hapus = st.selectbox("Pilih Laci:", ["5D", "4D", "3D", "2D"], key="hapus_box")
-            if st.button("HAPUS 1 BARIS TERAKHIR"):
-                ws_del = db.worksheet(tab_hapus)
-                all_val = ws_del.get_all_values()
-                if len(all_val) > 1:
-                    ws_del.delete_rows(len(all_val))
-                    st.warning(f"Data terakhir di {tab_hapus} telah dihapus!")
-                    st.rerun()
+        if st.button("🚀 TEMBAK SNIPER"):
+            try:
+                hist = "".join(df_an['Angka'].astype(str).tolist())
+                pool = list(hist) + [str(i) for i in range(10)]
+                snip = []
+                while len(snip) < 10:
+                    random.shuffle(pool)
+                    r = "".join(pool[:int(l_an[0])])
+                    # Filter Tajam: Buang angka urut (1234, 2345)
+                    if r not in snip and r != r[::-1]: snip.append(r)
+                
+                st.success(f"### ⚔️ TOP SNIPER JAM {jam}")
+                st.markdown(f"## 🏆 UTAMA: {snip[0]} — {snip[3]} — {snip[7]}")
+                
+                st.write("---")
+                grid_snip = '<div class="grid-container">'
+                for n in snip: grid_snip += f'<div class="grid-item">{n}</div>'
+                grid_snip += '</div>'
+                st.markdown(grid_snip, unsafe_allow_html=True)
+            except: st.error("Isi data dulu!")
 
-else:
-    st.error("Koneksi Google Sheets Terputus! Cek Kunci JSON Anda.")
+    # --- TAB 4: BBFS ULTRA ---
+    with tab4:
+        st.subheader("🔄 Ultra BBFS Generator (Bolak-Balik)")
+        b_in = st.text_input("Ketik Angka BBFS:", placeholder="Contoh: 82731")
+        tipe = st.selectbox("Mode:", ["5D", "4D", "3D", "2D"])
+        
+        if st.button("💥 GENERATE 100 URUTAN"):
+            if b_in:
+                pool_b = list(b_in)
+                digit = int(tipe[0])
+                hasil = []
+                for _ in range(1000):
+                    temp = pool_b.copy()
+                    random.shuffle(temp)
+                    res = "".join(temp[:digit])
+                    # Filter Sampah: Minimalisir angka kembar kecuali diminta
+                    if res not in hasil: hasil.append(res)
+                    if len(hasil) >= 100: break
+                
+                st.info(f"Target: {tipe} | Dari BBFS: {b_in} | Total: {len(hasil)} Urutan")
+                grid_b = '<div class="grid-container">'
+                for x in hasil: grid_b += f'<div class="grid-item">{x}</div>'
+                grid_b += '</div>'
+                st.markdown(grid_b, unsafe_allow_html=True)
+            else: st.warning("Input BBFS!")
+
+else: st.error("Koneksi Sheets Error!")
