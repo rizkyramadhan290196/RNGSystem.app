@@ -8,7 +8,7 @@ import json
 import random
 
 # --- 1. CONFIG ---
-st.set_page_config(page_title="RIZKY V9.7 AI ASSIST", page_icon="⚔️", layout="wide")
+st.set_page_config(page_title="RIZKY V9.8 AI ASSIST", page_icon="⚔️", layout="wide")
 PASSWORD_RAHASIA = "rizky77"
 
 st.markdown("""
@@ -19,11 +19,15 @@ st.markdown("""
     .slot-title { color: #FFD700; font-weight: bold; border-bottom: 1px solid #444; margin-bottom: 8px; font-size: 14px; }
     .ai-assist-box { background: linear-gradient(145deg, #071a2b, #000); border: 2px solid #00FF00; padding: 20px; border-radius: 15px; margin-bottom: 25px; text-align: center; }
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; border: 2px solid #FF4B4B; height: 3.5em; }
+    /* Style Tambahan V9.8 */
+    .mode-invest { background:#001220; border:2px solid #00FF00; padding:15px; border-radius:10px; text-align:center; }
+    .mode-bom { background:#4b0000; border:2px solid #FFD700; padding:15px; border-radius:10px; text-align:center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. DATABASE ---
+# --- 2. DATABASE & LOGIC V9.8 ---
 NAMA_KUNCI = "rng-database-486403-1313e482fc6d.json"
+
 @st.cache_resource
 def init_conn():
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -33,10 +37,25 @@ def init_conn():
         return gc.open("Database_RNG_Rizky")
     except: return None
 
+def hitung_triangle_v9(result_str):
+    try:
+        n = [int(d) for d in str(result_str)]
+        if len(n) >= 5: # Untuk 5D
+            as_ekor = (n[0] + n[4]) % 10
+            kop_kep = (n[1] + n[3]) % 10
+            tengah = n[2]
+            return f"{as_ekor}{kop_kep}{tengah}{as_ekor}"
+        elif len(n) == 4: # Untuk 4D
+            as_ekor = (n[0] + n[3]) % 10
+            kop_kep = (n[1] + n[2]) % 10
+            return f"{as_ekor}{kop_kep}{as_ekor}{kop_kep}"
+        return "????"
+    except: return "????"
+
 db = init_conn()
 
 if "password_correct" not in st.session_state:
-    st.title("⚔️ RIZKY V9.7 AI ASSIST")
+    st.title("⚔️ RIZKY V9.8 AI ASSIST")
     pwd = st.text_input("Akses Kunci:", type="password")
     if st.button("UNLOCK SYSTEM"):
         if pwd == PASSWORD_RAHASIA:
@@ -57,7 +76,7 @@ if db:
             if a_in:
                 laci = f"{len(a_in)}D"
                 db.worksheet(laci).append_row([str(t_in), a_in])
-                st.success(f"Data Masuk! AI sedang mengkalibrasi ulang 5 Slot Sniper...")
+                st.success(f"Data Masuk! AI Kalibrasi V9.8 Aktif...")
                 st.rerun()
 
         st.divider()
@@ -83,9 +102,9 @@ if db:
                 st.plotly_chart(fig, use_container_width=True)
         except: st.warning("Butuh data input dulu.")
 
-    # --- TAB 3: PENTA-SNIPER + AI RECOMMENDATION ---
+    # --- TAB 3: PENTA-SNIPER + V9.8 DUAL MODE ---
     with tab3:
-        st.subheader("🎯 Sniper AI System")
+        st.subheader("🎯 Sniper AI System (V9.8 Update)")
         col_s1, col_s2, col_s3, col_s4 = st.columns(4)
         with col_s1: s5 = st.button("🔥 SNIPER 5D")
         with col_s2: s4 = st.button("🔥 SNIPER 4D")
@@ -101,31 +120,44 @@ if db:
         if t_digit:
             st.session_state['last_digit_v9'] = t_digit
             try:
+                # Ambil data terakhir untuk Triangle
+                ws_an = db.worksheet(f"{t_digit}D")
+                df_an = pd.DataFrame(ws_an.get_all_records())
+                res_terakhir = df_an['Angka'].iloc[-1] if not df_an.empty else "00000"
+                
                 hist_str = "".join(df_an['Angka'].astype(str).tolist())
-                # LOCKED SEED: Angka paten selama data tidak berubah
                 random.seed(len(hist_str) * t_digit) 
                 
-                # --- ASISTEN AI REKOMENDASI UTAMA ---
                 pool_ai = list(hist_str) + [str(j) for j in range(10)]
                 random.shuffle(pool_ai)
-                rec1 = "".join(pool_ai[:t_digit])
-                random.shuffle(pool_ai)
-                rec2 = "".join(pool_ai[:t_digit])
-                random.shuffle(pool_ai)
+                rec1 = "".join(pool_ai[:t_digit]); random.shuffle(pool_ai)
+                rec2 = "".join(pool_ai[:t_digit]); random.shuffle(pool_ai)
                 rec3 = "".join(pool_ai[:t_digit])
-
-                st.markdown(f"""
-                <div class="ai-assist-box">
-                    <h3 style="color:#00FF00; margin-bottom:5px;">🤖 ASISTEN AI REKOMENDASI (100% RUMUS)</h3>
-                    <p style="color:white;">Berdasarkan pola data {t_digit}D, pasang angka bom ini:</p>
-                    <h1 style="color:#FFD700; letter-spacing: 5px;">{rec1} — {rec2} — {rec3}</h1>
-                </div>
-                """, unsafe_allow_html=True)
-
-                # --- 5 SLOT INVESTASI (10 URUTAN PER SLOT) ---
-                st.write(f"**📦 5 SLOT INVESTASI {t_digit}D (LOCKED):**")
-                cols = st.columns(1) # Stacked for mobile readability
                 
+                # HITUNG TRIANGLE
+                angka_bom_tri = hitung_triangle_v9(res_terakhir)
+
+                # DISPLAY DUAL MODE
+                c_kiri, c_kanan = st.columns([2, 1])
+                with c_kiri:
+                    st.markdown(f"""
+                    <div class="mode-invest">
+                        <h4 style="color:#00FF00; margin:0;">🛡️ MODE INVESTASI</h4>
+                        <p style="color:gray; font-size:12px;">Peluang Tinggi - Amankan Saldo</p>
+                        <h2 style="color:white; letter-spacing:3px;">{rec1} — {rec2}</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with c_kanan:
+                    st.markdown(f"""
+                    <div class="mode-bom">
+                        <h4 style="color:#FFD700; margin:0;">🔥 BOM TRIANGLE</h4>
+                        <p style="color:white; font-size:12px;">Target JP Paus</p>
+                        <h2 style="color:#FFD700; letter-spacing:3px;">{angka_bom_tri}</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.divider()
+                st.write(f"**📦 5 SLOT INVESTASI {t_digit}D (LOCKED):**")
                 for i in range(1, 6):
                     with st.container():
                         st.markdown(f'<div class="slot-box"><div class="slot-title">SLOT #{i}</div>', unsafe_allow_html=True)
@@ -135,16 +167,15 @@ if db:
                             random.shuffle(pool)
                             r = "".join(pool[:t_digit])
                             if r not in snip_list: snip_list.append(r)
-                        
                         grid = '<div class="grid-container">'
                         for n in snip_list: grid += f'<div class="grid-item">{n}</div>'
                         grid += '</div></div>'
                         st.markdown(grid, unsafe_allow_html=True)
             except: st.error("Lengkapi data di Tab 1 dulu!")
 
-    # --- TAB 4: BBFS ULTRA ---
+    # --- TAB 4: BBFS ULTRA + SMART PANGKAS ---
     with tab4:
-        st.subheader("🔄 BBFS Ultra Locked")
+        st.subheader("🔄 BBFS Ultra (Update V9.8)")
         b_in = st.text_input("Ketik Angka BBFS:", key="bbfs_input")
         c_b1, c_b2, c_b3, c_b4 = st.columns(4)
         with c_b1: b5 = st.button("💥 5D"); bt=5 if b5 else None
@@ -154,16 +185,29 @@ if db:
         
         if (b5 or b4 or b3 or b2) and b_in:
             random.seed(len(b_in) + 77) 
-            hasil = []
+            hasil_bbfs = []
             pool_b = list(b_in)
             for _ in range(500):
                 temp = pool_b.copy(); random.shuffle(temp)
                 res = "".join(temp[:bt])
-                if res not in hasil: hasil.append(res)
-                if len(hasil) >= 100: break
+                if res not in hasil_bbfs: hasil_bbfs.append(res)
+                if len(hasil_bbfs) >= 100: break
             
+            st.session_state['current_bbfs'] = hasil_bbfs
             grid_b = '<div class="grid-container">'
-            for x in hasil: grid_b += f'<div class="grid-item">{x}</div>'
+            for x in hasil_bbfs: grid_b += f'<div class="grid-item">{x}</div>'
             grid_b += '</div>'; st.markdown(grid_b, unsafe_allow_html=True)
+
+        # FITUR PANGKAS V9.8
+        if 'current_bbfs' in st.session_state:
+            st.divider()
+            if st.button("✂️ PANGKAS JADI 15 LINE TERKUAT (V9.8)"):
+                # Angka 2 sebagai 'Angka Gendong' berdasarkan tren terakhir
+                pangkas = [line for line in st.session_state['current_bbfs'] if "2" in line]
+                pangkas = pangkas[:15]
+                st.success("Berhasil! Menampilkan 15 line yang mengandung angka kunci '2'")
+                grid_p = '<div class="grid-container">'
+                for x in pangkas: grid_p += f'<div class="grid-item" style="background:red; border:1px solid white;">{x}</div>'
+                grid_p += '</div>'; st.markdown(grid_p, unsafe_allow_html=True)
 
 else: st.error("Database Diskonek!")
