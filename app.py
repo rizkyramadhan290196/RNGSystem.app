@@ -6,16 +6,14 @@ from datetime import datetime
 import json
 import random
 
-# --- CONFIG V11.9.1 ---
-st.set_page_config(page_title="RIZKY V11.9.1 - TWIN BOOSTER", page_icon="🦖", layout="wide")
+# --- CONFIG V11.9.2 ---
+st.set_page_config(page_title="RIZKY V11.9.2 - BALANCE MODE", page_icon="🦖", layout="wide")
 
-# CSS Neon Style + Better Table
 st.markdown("""
     <style>
-    .grid-item { background: #000; border: 1px solid #00FF00; border-radius: 5px; padding: 10px; text-align: center; color: #00FF00; font-family: monospace; font-size: 20px; font-weight: bold; }
-    .slot-box { background: #001100; border: 2px solid #00FF00; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { background-color: #111; border-radius: 5px; color: white; padding: 10px 20px; }
+    .grid-normal { background: #000; border: 1px solid #00FF00; border-radius: 5px; padding: 10px; text-align: center; color: #00FF00; font-family: monospace; font-size: 20px; font-weight: bold; }
+    .grid-twin { background: #001a00; border: 1px solid #FF00FF; border-radius: 5px; padding: 10px; text-align: center; color: #FF00FF; font-family: monospace; font-size: 20px; font-weight: bold; }
+    .slot-box { background: #000500; border: 2px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -34,25 +32,6 @@ def get_mirror(digit_str):
     kamus = {'0':'5', '1':'6', '2':'7', '3':'8', '4':'9', '5':'0', '6':'1', '7':'2', '8':'3', '9':'4'}
     return "".join([kamus[d] for d in digit_str])
 
-def predator_logic_v11_9_1(history_list):
-    if len(history_list) < 1: return list("0123456789")
-    last_res = str(history_list[-1]) # Misal: 05007
-    
-    pool = list("0123456789")
-    
-    # BOOSTER: Angka Lengket & Mirror (Fokus Twin)
-    pool.extend(list(last_res) * 8) 
-    pool.extend(list(get_mirror(last_res)) * 6)
-    
-    # KUNCI TWIN: Paksa angka yang baru keluar jadi pasangan kembar
-    for char in last_res:
-        pool.extend([char, char] * 4) 
-        
-    # Angka Hantu Pendamping
-    pool.extend(["2", "4", "8", "6"] * 3)
-    
-    return pool
-
 db = init_conn()
 
 if db:
@@ -60,52 +39,51 @@ if db:
     data = ws.get_all_records()
     df = pd.DataFrame(data)
     
-    tab1, tab2, tab3 = st.tabs(["📥 DATA INPUT", "📊 TREND ANALYST", "🎯 SNIPER V11.9.1"])
+    tab1, tab2, tab3 = st.tabs(["📥 DATA INPUT", "📊 TREND", "🎯 SNIPER V11.9.2"])
 
     with tab1:
         st.subheader("Update Database Rizky")
-        a_in = st.text_input("Masukan Result Terakhir (Contoh: 05007):")
-        if st.button("SINKRONKAN SISTEM V11.9.1"):
+        a_in = st.text_input("Masukan Result Terakhir (30287):")
+        if st.button("SINKRONKAN SISTEM"):
             if a_in:
                 ws.append_row([str(datetime.now().date()), a_in])
-                st.success(f"Result {a_in} Berhasil Disimpan! Sistem Update.")
+                st.success("Sistem Sinkron!")
                 st.rerun()
 
     with tab2:
         if not df.empty:
-            st.subheader("Grafik Pergerakan Angka (Trend)")
-            # Ambil 2 angka belakang (ekor) untuk grafik
             df['Ekor'] = df['Angka'].apply(lambda x: int(str(x)[-2:]) if len(str(x))>=2 else int(x))
-            st.line_chart(df['Ekor'].tail(15))
-            st.write("Pantau: Jika grafik mendatar, artinya bandar main angka kembar/kecil.")
+            st.line_chart(df['Ekor'].tail(20))
 
     with tab3:
         if not df.empty:
             res_akhir = str(df['Angka'].tolist()[-1])
-            st.subheader(f"🎯 Sniper Master (Seed: {res_akhir})")
+            st.subheader(f"🎯 Sniper Balance (Seed: {res_akhir})")
             
-            digit_opsi = st.radio("Pilih Digit:", [5, 4, 3, 2], index=1, horizontal=True)
-            
-            # Generate Sniper
+            # --- LOGIKA ADAPTIVE V11.9.2 ---
             random.seed(res_akhir)
-            pool = predator_logic_v11_9_1(df['Angka'].tolist())
+            pool_normal = list("0123456789") + list(res_akhir)*5 + list(get_mirror(res_akhir))*3
+            pool_twin = list(res_akhir) * 10 + list(get_mirror(res_akhir)) * 5
             
-            master_raw = []
-            while len(master_raw) < 16: # Kita tambah jadi 16 baris
-                random.shuffle(pool)
-                line = "".join(pool[:5])
-                if line not in master_raw:
-                    master_raw.append(line)
+            snipers = []
+            # 10 Baris Normal (Warna Hijau)
+            for _ in range(10):
+                random.shuffle(pool_normal)
+                snipers.append(("".join(pool_normal[:5]), "grid-normal"))
+            
+            # 6 Baris Twin (Warna Pink/Ungu untuk Penanda)
+            for _ in range(6):
+                random.shuffle(pool_twin)
+                pick = random.choice(list(res_akhir))
+                line = pick + pick + "".join(random.sample(pool_twin, 3))
+                snipers.append((line, "grid-twin"))
 
-            # Tampilan Grid Neon
-            st.markdown('<div class="slot-box">', unsafe_allow_html=True)
             cols = st.columns(4)
-            for i, val in enumerate(master_raw):
-                sniper_final = val[-digit_opsi:]
-                cols[i % 4].markdown(f'<div class="grid-item">{sniper_final}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            for i, (val, style) in enumerate(snipers):
+                cols[i % 4].markdown(f'<div class="{style}">{val}</div>', unsafe_allow_html=True)
             
-            # FITUR BARU: BBFS Rekomendasi
-            st.info("💡 **Rekomendasi BBFS (5 Digit):**")
-            bbfs_top = "".join(list(set(pool))[:5])
-            st.success(f"Coba Pasang BBFS: **{bbfs_top}** (Gunakan ini jika saldo mencukupi)")
+            # --- BBFS TERKUAT ---
+            # Mengambil 5 digit paling sering muncul/dominan
+            bbfs_pool = list(set(list(res_akhir) + list(get_mirror(res_akhir)) + ["3", "8"]))
+            bbfs_final = "".join(random.sample(bbfs_pool, 6)) # Kita upgrade jadi 6 digit biar lebih aman
+            st.warning(f"💡 **Rekomendasi BBFS 6 Digit (Jaga-jaga): {bbfs_final}**")
