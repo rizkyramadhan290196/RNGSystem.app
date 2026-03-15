@@ -7,24 +7,14 @@ import json
 import random
 import collections
 
-# --- ENGINE V15: THE MIRROR-TRAP (ANTI-INDEX SYSTEM) ---
-st.set_page_config(page_title="RIZKY V15 MIRROR-TRAP", page_icon="🪤", layout="wide")
+# --- ENGINE V16: THE GHOST HUNTER (RENOVASI TOTAL) ---
+st.set_page_config(page_title="RIZKY V16 GHOST HUNTER", page_icon="👻", layout="wide")
 
-# Styling UI Sniper
 st.markdown("""
     <style>
-    .grid-hunter { 
-        background: #0d0d0d; 
-        border: 2px solid #ff00ff; 
-        border-radius: 8px; 
-        padding: 12px; 
-        text-align: center; 
-        color: #ff00ff; 
-        font-family: 'Courier New', monospace; 
-        font-size: 22px; 
-        font-weight: bold;
-        box-shadow: 0 0 10px #ff00ff;
-    }
+    .header-box { background: #1a1a1a; color: #00FF00; padding: 20px; border-radius: 10px; border: 1px solid #00FF00; text-align: center; margin-bottom: 20px; }
+    .grid-5d { background: #002b36; border: 1px solid #2aa198; border-radius: 5px; padding: 10px; text-align: center; color: #2aa198; font-family: 'Courier New'; font-size: 20px; font-weight: bold; }
+    .grid-4d { background: #1a1a1a; border: 1px solid #d33682; border-radius: 5px; padding: 10px; text-align: center; color: #d33682; font-family: 'Courier New'; font-size: 20px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -43,93 +33,80 @@ db = init_conn()
 
 if db:
     ws = db.worksheet("5D")
-    data_raw = ws.get_all_records()
-    df = pd.DataFrame(data_raw)
+    df = pd.DataFrame(ws.get_all_records())
     
-    tab1, tab2 = st.tabs(["📥 INPUT DATA", "🎯 MIRROR-TRAP ANALYSIS (V15)"])
+    tab1, tab2, tab3 = st.tabs(["📥 INPUT DATA", "🎯 5D ANALYSIS", "🎯 4D SNIPER"])
 
     with tab1:
-        st.subheader("Input Result Baru")
-        a_in = st.text_input("Masukan Result (Misal: 94140):")
-        if st.button("PROSES DATA"):
+        a_in = st.text_input("Masukan Result Terakhir (Contoh: 02629):")
+        if st.button("UPDATE DATABASE"):
             if a_in:
                 ws.append_row([str(datetime.now().date()), a_in])
-                st.success(f"Result {a_in} tersimpan!")
+                st.success("Data Berhasil Disimpan!")
                 st.rerun()
 
-    with tab2:
-        if not df.empty:
-            all_res = [str(x) for x in df['Angka'].tolist()]
-            res_akhir = all_res[-1]
-            
-            # --- LOGIKA V15: THE MIRROR-TRAP ---
-            t_idx = {'0':'5','1':'6','2':'7','3':'8','4':'9','5':'0','6':'1','7':'2','8':'3','9':'4'}
-            
-            # 1. HITUNG SKOR DASAR (40 Sesi Terakhir - Fokus Tren Menengah)
-            raw_scores = {str(i): 0 for i in range(10)}
-            target_history = all_res[-40:]
-            for r in target_history:
-                for char in r:
-                    raw_scores[char] += 1.0
+    if not df.empty:
+        all_res = [str(x) for x in df['Angka'].tolist()]
+        res_akhir = all_res[-1]
+        t_idx = {'0':'5','1':'6','2':'7','3':'8','4':'9','5':'0','6':'1','7':'2','8':'3','9':'4'}
 
-            # 2. LOGIKA PAIRING INDEX (Sistem Jaring)
-            # Menghitung kekuatan pasangan (0-5, 1-6, dst)
-            pair_scores = {}
-            for i in range(5):
-                s1, s2 = str(i), t_idx[str(i)]
-                combined = raw_scores[s1] + raw_scores[s2]
-                pair_scores[f"{s1}{s2}"] = combined
+        # --- LOGIKA CORE V16 (GHOST SCORING) ---
+        scores = {str(i): 0 for i in range(10)}
+        for i in range(10):
+            s_i = str(i)
+            # Gap Analysis: Cari kapan terakhir muncul
+            gap = 0
+            for idx, r in enumerate(reversed(all_res)):
+                if s_i in r: break
+                gap += 1
+            scores[s_i] = gap * 3.0 # Angka yang lama absen (seperti 8) dapat skor tinggi
+        
+        # Tambahkan skor untuk Index dari result terakhir (02629)
+        for char in res_akhir:
+            scores[t_idx[char]] += 4.5
 
-            # 3. FIX BBFS 6 DIGIT (3 Pasang Terkuat)
-            top_pairs = sorted(pair_scores, key=pair_scores.get, reverse=True)[:3]
-            bbfs_6_digit = list("".join(top_pairs))
-            bbfs_final = "".join(sorted(bbfs_6_digit))
-
-            # 4. POSITIONING ANALYSIS (10 Sesi Terakhir - Suhu Panas)
-            pos = {'as':[], 'kop':[], 'kep':[], 'eko':[]}
-            for r in all_res[-10:]:
-                if len(r) >= 4:
-                    pos['as'].append(r[-4]); pos['kop'].append(r[-3])
-                    pos['kep'].append(r[-2]); pos['eko'].append(r[-1])
+        with tab2:
+            st.markdown('<div class="header-box"><h1>🎯 5D POSITION MASTER</h1></div>', unsafe_allow_html=True)
+            # Analisis Posisi 5 Digit (History 20 sesi)
+            posisi = {0:[], 1:[], 2:[], 3:[], 4:[]}
+            for r in all_res[-20:]:
+                r_pad = r.zfill(5)
+                for i in range(5): posisi[i].append(r_pad[i])
             
-            # Ambil 2 kandidat terkuat per posisi
-            best_pos = {k: [i[0] for i in collections.Counter(v).most_common(2)] for k, v in pos.items()}
-
-            snipers = []
-            # Kombinasi berdasarkan posisi
-            for a in best_pos['as']:
-                for k in best_pos['kop']:
-                    for kp in best_pos['kep']:
-                        for ek in best_pos['eko']:
-                            line = f"{a}{k}{kp}{ek}"
-                            # Filter: Wajib masuk dalam radar BBFS Mirror-Trap
-                            if all(c in bbfs_6_digit for c in line):
-                                if line not in snipers: snipers.append(line)
+            # Ambil top 3 tiap posisi
+            best_pos = {k: [i[0] for i in collections.Counter(v).most_common(3)] for k, v in posisi.items()}
             
-            # Jika kurang dari 10 line, isi dengan sample BBFS agar tetap 10 line
-            while len(snipers) < 10:
-                line = "".join(random.sample(bbfs_6_digit, 4))
-                if line not in snipers: snipers.append(line)
-
-            # --- DISPLAY INTERFACE ---
-            st.subheader(f"📊 Sniper V15 (Analisis Berdasarkan {len(all_res)} Data)")
-            st.write(f"Result Terakhir: **{res_akhir}**")
+            snipers_5d = []
+            for _ in range(12):
+                line = "".join([random.choice(best_pos[i]) for i in range(5)])
+                if line not in snipers_5d: snipers_5d.append(line)
             
+            cols = st.columns(4)
+            for i, val in enumerate(snipers_5d):
+                cols[i % 4].markdown(f'<div class="grid-5d">{val}</div>', unsafe_allow_html=True)
+
+        with tab3:
+            st.markdown('<div class="header-box"><h1>🎯 4D SNIPER KETAT</h1></div>', unsafe_allow_html=True)
+            # BBFS 6 Digit paling ketat (Ghost Logic)
+            top_6 = sorted(scores, key=scores.get, reverse=True)[:6]
+            if '8' not in top_6: top_6[-1] = '8' # Wajib kunci angka 8
+            bbfs_final = "".join(sorted(top_6))
+            
+            # Sniper 4D (Hanya 10 Line)
+            snipers_4d = []
+            while len(snipers_4d) < 10:
+                line = "".join(random.sample(top_6, 4))
+                if line not in snipers_4d: snipers_4d.append(line)
+
             cols = st.columns(5)
-            for i, val in enumerate(snipers[:10]):
-                cols[i % 5].markdown(f'<div class="grid-hunter">{val}</div>', unsafe_allow_html=True)
+            for i, val in enumerate(snipers_4d):
+                cols[i % 5].markdown(f'<div class="grid-4d">{val}</div>', unsafe_allow_html=True)
             
-            st.write("---")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.success(f"### 💡 BBFS MIRROR-TRAP: {bbfs_final}")
-                st.caption("BBFS ini mengunci 3 pasang angka Index terkuat.")
-            with c2:
-                # Menampilkan pasangan index yang dipilih
-                st.warning(f"### 🎯 PAIRING AKTIF: {', '.join(top_pairs)}")
-                st.caption("Sistem mendeteksi siklus bandar di angka-angka ini.")
+            st.divider()
+            st.success(f"### 💡 BBFS 4D (GHOST SYSTEM): {bbfs_final}")
+            st.warning(f"### 🎯 ANGKA GHOST (BOM): 8")
 
-        else:
-            st.error("Database kosong. Input result dulu!")
+    else:
+        st.error("Isi database dulu, Ky!")
 else:
-    st.error("Gagal koneksi ke Google Sheets!")
+    st.error("Koneksi Gagal!")
